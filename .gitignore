@@ -1,2 +1,37 @@
 # Environment Variables
 .env
+
+# Corpus PDFs — tracked via corpus_manifest.csv, not committed to git
+# Run the download scripts to rebuild locally
+corpus/
+
+# Download helper scripts (internal use)
+download_corpus.ps1
+download_batch2.ps1
+download_batch3.ps1
+download_batch4.ps1
+count_corpus.ps1
+generate_manifest.ps1
+verify_manifest.ps1
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+
+# Node
+node_modules/
+.next/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
