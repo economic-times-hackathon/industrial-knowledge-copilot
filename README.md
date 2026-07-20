@@ -44,22 +44,41 @@ It ingests heterogeneous industrial documents — engineering drawings, OEM manu
 
 ---
 
-## Core Capabilities
+## How It Works
 
-**Universal Document Ingestion**
-Parses PDFs across all industrial document types using PyMuPDF. Chunks intelligently with industrial-domain-aware separators, embeds with OpenAI, and indexes into ChromaDB — producing 13,779 searchable chunks from 100 documents across 7.9 million characters of text.
+Five of the six dashboard screens are the same backend pipeline wearing different prompts and output formats. That's what keeps this buildable in a hackathon window rather than six separate products.
 
-**Expert Knowledge Copilot**
-RAG-powered conversational AI that answers operational, maintenance, and engineering queries across the full document corpus. Returns grounded answers with source citations, confidence scores, and direct links to originating documents.
+```
+User action → POST /endpoint
+                 ↓
+           retrieve() — semantic search over 13,779 chunks
+                 ↓
+           format_context() — ranked chunks + metadata
+                 ↓
+           LLM (GPT-4o) + mode-specific system prompt
+                 ↓
+           Structured response with citations
+```
 
-**Maintenance Intelligence & RCA Agent**
-Fuses work order history, equipment failure records, OEM manuals, and inspection findings to generate predictive maintenance recommendations and root cause analysis support.
+## The Six Screens
 
-**Quality & Regulatory Compliance Intelligence**
-Maps OISD, PESO, Factories Act, and environmental standards against current procedures and inspection records. Identifies compliance gaps and flags quality deviations before they escalate.
+**Document Upload** (`POST /upload`)
+User drags in a PDF. It's stored, queued, and the ingestion pipeline runs async — parse → chunk → embed → indexed. The screen shows progress then flips the doc to "indexed". Non-blocking.
 
-**Lessons Learned Engine**
-Analyses incident reports, near-miss records, and audit findings to identify systemic failure patterns and proactively surface warnings before similar conditions recur.
+**AI Copilot** (`POST /query`)
+Open Q&A across the full corpus. Question hits the retriever, top-k chunks are pulled, GPT-4o generates a cited answer. Every answer links back to the originating document with a relevance score and confidence level (HIGH / MEDIUM / LOW).
+
+**Asset Explorer** (`GET /asset/{tag}`)
+Click any equipment tag on a P&ID (e.g. `P-101A`, `E-203`, `PSV-301`) — pulls everything the knowledge base knows about that tag: specs from OEM manuals, work order history, inspection findings, operating procedures, any related incident reports. Currently vector search; Neo4j graph traversal will replace it for true linked-node queries.
+
+**Maintenance Intel** (`POST /maintenance/rca`)
+Provide an equipment tag and a symptom. The RCA prompt joins structured work order records with unstructured inspection notes and incident history, then surfaces: probable root causes ranked by evidence, contributing factors, recommended actions, and similar historical failures. Same retrieval pipeline as the copilot — different system prompt, structured output.
+
+**Compliance Intel** (`POST /compliance`)
+Provide a topic (e.g. "pressure relief valve testing") and optional equipment/area. The compliance prompt maps live state against OISD, PESO, Factories Act, and DGMS requirements, identifies gaps, and generates an evidence pack listing every document that serves as audit evidence.
+
+**Notifications** (`GET /notifications`)
+Proactive, not reactive. A background job calls this on a schedule — no user action needed. Scans the knowledge base for active risk patterns, compliance gaps, and lessons from historical incidents, then pushes a digest to the alert feed. This is the lessons-learned engine surfacing before similar conditions recur.
 
 ---
 
@@ -84,13 +103,14 @@ Full provenance in [`corpus_manifest.csv`](./corpus_manifest.csv).
 | Layer | Technology | Status |
 |---|---|---|
 | Document Parsing | PyMuPDF 1.28 | Done |
-| Chunking | LangChain RecursiveCharacterTextSplitter | Done |
+| Chunking | LangChain RecursiveCharacterTextSplitter (800 chars / 150 overlap) | Done |
 | Embeddings | OpenAI `text-embedding-3-small` | Done |
-| Vector Store | ChromaDB 1.1 (local persistence) | Done |
-| LLM / RAG | GPT-4o via LangChain | Done |
-| Backend API | FastAPI 0.111 + Uvicorn | Done |
+| Vector Store | ChromaDB 1.1 — local persistence, incremental upsert | Done |
+| LLM / RAG | GPT-4o via LangChain — 4 prompt modes | Done |
+| Backend API | FastAPI 0.111 + Uvicorn — 6 screen endpoints | Done |
+| Async Ingestion | FastAPI BackgroundTasks — upload → parse → embed | Done |
 | Frontend | React + Tailwind CSS | In progress |
-| Knowledge Graph | Neo4j + industrial ontology | Planned |
+| Knowledge Graph | Neo4j — Asset Explorer graph traversal | Planned |
 | Deployment | Docker Compose | Planned |
 
 ---
@@ -111,10 +131,10 @@ Full provenance in [`corpus_manifest.csv`](./corpus_manifest.csv).
 │   ├── embedder.py                 # OpenAI embeddings → ChromaDB (incremental)
 │   └── run_ingestion.py            # CLI entry point: parse → chunk → embed
 ├── rag_engine/
-│   ├── retriever.py                # Semantic search with category filtering
-│   └── copilot.py                  # RAG chain: retrieve → GPT-4o → cited answer
+│   ├── retriever.py                # Semantic search with optional category filter
+│   └── copilot.py                  # Four prompt modes: ask/rca/compliance/notify
 ├── api/
-│   └── main.py                     # FastAPI: POST /query, GET /corpus/stats, GET /health
+│   └── main.py                     # Six screen endpoints + system endpoints
 ├── generate_pids.py                # Synthetic P&ID generator (ISA-5.1 symbols)
 ├── generate_pump_manuals.py        # Synthetic pump IOM generator
 ├── generate_inspection_docs.py     # Synthetic inspection records & sensor CSV generator
@@ -181,15 +201,24 @@ Or use the interactive docs at `http://localhost:8000/docs`.
 
 ## API Reference
 
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/health` | Health check — confirms API and key status |
-| `GET` | `/corpus/stats` | Total chunks indexed, breakdown by category |
-| `GET` | `/corpus/categories` | List available document categories |
-| `POST` | `/query` | Ask the knowledge copilot |
+All six dashboard screens map to one endpoint each. One backend pipeline, six prompt modes.
 
-**Query request body:**
+| Screen | Method | Endpoint | Description |
+|---|---|---|---|
+| Document Upload | `POST` | `/upload` | Ingest a PDF async — parse, chunk, embed |
+| AI Copilot | `POST` | `/query` | Open Q&A with cited answers + confidence |
+| Asset Explorer | `GET` | `/asset/{tag}` | Everything linked to an equipment tag |
+| Maintenance Intel | `POST` | `/maintenance/rca` | RCA report — root causes + recommendations |
+| Compliance Intel | `POST` | `/compliance` | Gap check + evidence pack against OISD/PESO |
+| Notifications | `GET` | `/notifications` | Proactive alert digest (background scan) |
+| — | `GET` | `/health` | API health + key status |
+| — | `GET` | `/corpus/stats` | Chunks indexed, breakdown by category |
+
+**Interactive docs:** `http://localhost:8000/docs`
+
+**Example — AI Copilot:**
 ```json
+POST /query
 {
   "question": "What caused the BP Texas City refinery explosion?",
   "category": "incident_reports",
@@ -197,7 +226,23 @@ Or use the interactive docs at `http://localhost:8000/docs`.
 }
 ```
 
-**Response includes:** grounded answer, confidence level (HIGH/MEDIUM/LOW), and numbered source citations with filename, category, and source URL.
+**Example — Maintenance RCA:**
+```json
+POST /maintenance/rca
+{
+  "equipment_tag": "P-101A",
+  "symptom": "High bearing temperature alarm at 88°C, vibration trending up"
+}
+```
+
+**Example — Compliance check:**
+```json
+POST /compliance
+{
+  "topic": "pressure relief valve testing and certification",
+  "equipment_or_area": "CDU overhead system"
+}
+```
 
 ---
 
