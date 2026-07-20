@@ -14,7 +14,7 @@
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { @apply bg-surface-800; }
   ::-webkit-scrollbar-thumb { @apply bg-surface-500 rounded-full; }
-  ::-webkit-scrollbar-thumb:hover { @apply bg-surface-400; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-surface-500; }
 }
 
 @layer components {
