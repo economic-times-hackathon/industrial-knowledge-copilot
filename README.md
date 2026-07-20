@@ -12,7 +12,7 @@
 
 ---
 
-![Status](https://img.shields.io/badge/Status-In_Development-yellow?style=flat-square)
+![Status](https://img.shields.io/badge/Status-Active-brightgreen?style=flat-square)
 ![Hackathon](https://img.shields.io/badge/ET_Hackathon-2026-orange?style=flat-square)
 ![Theme](https://img.shields.io/badge/Theme-Industrial_Intelligence-blue?style=flat-square)
 ![Corpus](https://img.shields.io/badge/Corpus-102_Documents-green?style=flat-square)
@@ -109,7 +109,7 @@ Full provenance in [`corpus_manifest.csv`](./corpus_manifest.csv).
 | LLM / RAG | GPT-4o via LangChain — 4 prompt modes | Done |
 | Backend API | FastAPI 0.111 + Uvicorn — 6 screen endpoints | Done |
 | Async Ingestion | FastAPI BackgroundTasks — upload → parse → embed | Done |
-| Frontend | React + Tailwind CSS | In progress |
+| Frontend | React 18 + Tailwind 3 + Vite — 6-screen dashboard | Done |
 | Knowledge Graph | Neo4j — Asset Explorer graph traversal | Planned |
 | Deployment | Docker Compose | Planned |
 
@@ -135,6 +135,30 @@ Full provenance in [`corpus_manifest.csv`](./corpus_manifest.csv).
 │   └── copilot.py                  # Four prompt modes: ask/rca/compliance/notify
 ├── api/
 │   └── main.py                     # Six screen endpoints + system endpoints
+├── frontend/                       # React 18 + Tailwind 3 + Vite dashboard
+│   ├── src/
+│   │   ├── App.jsx                 # Root: sidebar routing, layout shell
+│   │   ├── api.js                  # Axios client wrapping all 8 API calls
+│   │   ├── index.css               # Tailwind base + custom prose-industrial styles
+│   │   ├── components/
+│   │   │   ├── Sidebar.jsx         # Left nav with active highlight + notification badge
+│   │   │   ├── Header.jsx          # Top bar with live KPI strip (chunks, docs, categories)
+│   │   │   ├── AnswerPanel.jsx     # Markdown answer + collapsible sources
+│   │   │   ├── ConfidenceBadge.jsx # HIGH/MEDIUM/LOW coloured indicator
+│   │   │   ├── SourceCard.jsx      # Per-source card with category colour + URL
+│   │   │   ├── Spinner.jsx         # Animated loading indicator
+│   │   │   └── ErrorBanner.jsx     # Dismissible error display
+│   │   └── screens/
+│   │       ├── UploadScreen.jsx    # Drag-drop, per-file progress, pipeline steps
+│   │       ├── CopilotScreen.jsx   # Chat interface, starters, category filter
+│   │       ├── AssetScreen.jsx     # Tag search, quick chips, grouped source list
+│   │       ├── MaintenanceScreen.jsx # RCA form, structured section renderer
+│   │       ├── ComplianceScreen.jsx  # Gap check, evidence pack renderer
+│   │       └── NotifyScreen.jsx    # Auto-load alert digest, severity badges
+│   ├── index.html
+│   ├── vite.config.js              # Dev proxy: /api → localhost:8000
+│   ├── tailwind.config.js          # Industrial dark palette
+│   └── package.json
 ├── generate_pids.py                # Synthetic P&ID generator (ISA-5.1 symbols)
 ├── generate_pump_manuals.py        # Synthetic pump IOM generator
 ├── generate_inspection_docs.py     # Synthetic inspection records & sensor CSV generator
@@ -153,7 +177,7 @@ Full provenance in [`corpus_manifest.csv`](./corpus_manifest.csv).
 ```bash
 git clone https://github.com/economic-times-hackathon/industrial-knowledge-copilot.git
 cd industrial-knowledge-copilot
-git lfs pull                        # download the corpus PDFs
+git lfs pull                        # download the corpus PDFs (155 MB)
 pip install -r requirements.txt
 ```
 
@@ -161,41 +185,41 @@ pip install -r requirements.txt
 
 ```bash
 cp .env.example .env
-# edit .env — add your OPENAI_API_KEY
+# Open .env and set OPENAI_API_KEY=sk-...
 ```
 
 ### 3. Run the ingestion pipeline
 
-Parses all 102 documents, chunks them into 13,779 segments, and indexes embeddings into ChromaDB:
+Parses all 102 documents, chunks into 13,779 segments, indexes into ChromaDB (~5 min, costs ~$0.20 in embeddings):
 
 ```bash
 python -m ingestion.run_ingestion
 ```
 
-Check the index afterwards:
+Verify the index:
 
 ```bash
 python -m ingestion.run_ingestion --stats-only
 ```
 
-### 4. Start the API
+### 4. Start the backend API
 
 ```bash
 python -m api.main
-# API runs at http://localhost:8000
-# Docs at  http://localhost:8000/docs
+# API:      http://localhost:8000
+# Swagger:  http://localhost:8000/docs
 ```
 
-### 5. Query the copilot
+### 5. Start the frontend
 
 ```bash
-# POST /query
-curl -X POST http://localhost:8000/query \
-  -H "Content-Type: application/json" \
-  -d '{"question": "What are OISD requirements for emergency siren codes?"}'
+cd frontend
+npm install
+npm run dev
+# UI: http://localhost:3000
 ```
 
-Or use the interactive docs at `http://localhost:8000/docs`.
+The frontend proxies all `/api/*` calls to `http://localhost:8000` via Vite's dev proxy — no CORS setup needed.
 
 ---
 

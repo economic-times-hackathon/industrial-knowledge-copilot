@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; }
+
+  body {
+    @apply bg-surface-900 text-gray-200 font-sans antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { @apply bg-surface-800; }
+  ::-webkit-scrollbar-thumb { @apply bg-surface-500 rounded-full; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-surface-400; }
+}
+
+@layer components {
+  /* Markdown prose inside answer panels */
+  .prose-industrial {
+    @apply text-gray-300 leading-relaxed text-sm;
+  }
+  .prose-industrial h2 {
+    @apply text-accent-blue font-semibold text-base mt-5 mb-2 border-b border-surface-600 pb-1;
+  }
+  .prose-industrial h3 {
+    @apply text-gray-200 font-medium text-sm mt-3 mb-1;
+  }
+  .prose-industrial p {
+    @apply mb-3;
+  }
+  .prose-industrial ul, .prose-industrial ol {
+    @apply ml-4 mb-3 space-y-1;
+  }
+  .prose-industrial li {
+    @apply text-gray-300;
+  }
+  .prose-industrial li::marker {
+    @apply text-accent-blue;
+  }
+  .prose-industrial strong {
+    @apply text-gray-100 font-semibold;
+  }
+  .prose-industrial code {
+    @apply font-mono text-accent-orange bg-surface-700 px-1 py-0.5 rounded text-xs;
+  }
+  .prose-industrial blockquote {
+    @apply border-l-2 border-accent-blue pl-3 text-gray-400 italic;
+  }
+  /* Citation links */
+  .prose-industrial a {
+    @apply text-accent-blue underline;
+  }
+}
