@@ -1,19 +1,6 @@
 # Environment Variables
 .env
-
-# Download helper scripts (internal use — not needed by collaborators)
-download_corpus.ps1
-download_batch2.ps1
-download_batch3.ps1
-download_batch4.ps1
-count_corpus.ps1
-generate_manifest.ps1
-verify_manifest.ps1
-retry_blocked.ps1
-retry_curl.ps1
-final_sweep.ps1
-check_small.ps1
-check_sizes.ps1
+*.env.*
 
 # Corpus PDFs/CSVs are tracked via Git LFS (.gitattributes)
 # They ARE committed — LFS handles the binary storage

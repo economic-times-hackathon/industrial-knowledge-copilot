@@ -16,7 +16,7 @@
 ![Status](https://img.shields.io/badge/Status-In_Development-yellow?style=flat-square)
 ![Hackathon](https://img.shields.io/badge/ET_Hackathon-2026-orange?style=flat-square)
 ![Theme](https://img.shields.io/badge/Theme-Industrial_Intelligence-blue?style=flat-square)
-![Corpus](https://img.shields.io/badge/Corpus-72_Documents-green?style=flat-square)
+![Corpus](https://img.shields.io/badge/Corpus-102_Documents-green?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-brightgreen?style=flat-square)
 
 </div>
@@ -69,13 +69,13 @@ Analyses incident reports, near-miss records, and audit findings across organisa
 
 | Category | Files | Key Sources |
 |---|---|---|
-| P&IDs & Process Diagrams | 7 | AIChE, LibreTexts, Honeywell, OSHA |
-| OEM Equipment Manuals | 8 | Emerson/Fisher, Atlas Copco, Alfa Laval, SKF, Siemens |
+| P&IDs & Process Diagrams | 19 | AIChE, LibreTexts, Honeywell, OSHA + 12 synthetic plant P&IDs |
+| OEM Equipment Manuals | 14 | Emerson/Fisher, Atlas Copco, Alfa Laval, SKF, Siemens + synthetic pump IOMs |
 | Regulatory & Standards | 30 | OISD.gov.in, PESO.gov.in, DGMS.gov.in, India Code |
-| Incident & Safety Reports | 19 | CSB.gov, OSHA, ILO, DGMS |
-| Maintenance & Inspection Data | 9 | SKF, NASA CMAPSS, OSHA, DGMS |
+| Incident & Safety Reports | 21 | CSB.gov, OSHA, ILO, DGMS |
+| Maintenance & Inspection Data | 18 | SKF, NASA CMAPSS, OSHA, synthetic inspection records & sensor CSVs |
 
-Full provenance in [`corpus_manifest.csv`](./corpus_manifest.csv).
+Full provenance in [`corpus_manifest.csv`](./corpus_manifest.csv). All binaries tracked via Git LFS.
 
 ---
 
