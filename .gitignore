@@ -1,6 +1,7 @@
 # Environment Variables
 .env
-*.env.*
+.env.local
+.env.production
 
 # Corpus PDFs/CSVs are tracked via Git LFS (.gitattributes)
 # They ARE committed — LFS handles the binary storage
@@ -26,3 +27,6 @@ build/
 # OS
 .DS_Store
 Thumbs.db
+
+# Vector store (generated locally by ingestion pipeline — not committed)
+chroma_db/
