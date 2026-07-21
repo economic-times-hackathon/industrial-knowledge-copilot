@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Bell, RefreshCw, AlertTriangle, ShieldAlert, BookOpen, Zap, ChevronDown, ChevronUp } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { api } from '../api'
-import ConfidenceBadge from '../components/ConfidenceBadge'
+
 import SourceCard from '../components/SourceCard'
 import Spinner from '../components/Spinner'
 
@@ -125,7 +125,7 @@ export default function NotifyScreen() {
               </p>
             )}
           </div>
-          <ConfidenceBadge level={result.confidence} />
+
           <span className="text-xs text-gray-600 font-mono">{result.chunks_retrieved} chunks</span>
         </div>
       )}

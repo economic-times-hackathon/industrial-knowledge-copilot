@@ -151,6 +151,7 @@ def _run(system_prompt: str, user_message: str, chunks) -> dict:
             "document_type": c.document_type,
             "description": c.description,
             "relevance_score": c.score,
+            "excerpt": c.text[:100],
         }
         for i, c in enumerate(chunks, 1)
     ]

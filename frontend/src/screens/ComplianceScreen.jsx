@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { ShieldCheck, ChevronDown, ChevronUp, AlertTriangle, CheckCircle2, Info } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { api } from '../api'
-import ConfidenceBadge from '../components/ConfidenceBadge'
+
 import SourceCard from '../components/SourceCard'
 import Spinner from '../components/Spinner'
 import ErrorBanner from '../components/ErrorBanner'
@@ -207,7 +207,7 @@ export default function ComplianceScreen() {
               <div className="text-sm font-medium text-gray-200 truncate">{topic}</div>
               {area && <div className="text-xs text-gray-500">{area}</div>}
             </div>
-            <ConfidenceBadge level={result.confidence} />
+
             <span className="text-xs text-gray-600 font-mono shrink-0">{result.chunks_retrieved} chunks</span>
           </div>
 

@@ -19,12 +19,14 @@ from typing import Optional
 
 from fastapi import FastAPI, HTTPException, UploadFile, File, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from dotenv import load_dotenv
 load_dotenv()
 
 from rag_engine.copilot import ask, rca_query, compliance_check, notify_scan
+from rag_engine.graph import get_neighbors
 from ingestion.embedder import get_collection_stats
 
 app = FastAPI(
@@ -44,8 +46,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+os.makedirs("corpus", exist_ok=True)
+os.makedirs("uploads", exist_ok=True)
+app.mount("/corpus", StaticFiles(directory="corpus"), name="corpus")
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
 CHROMA_DIR = os.getenv("CHROMA_PERSIST_DIR", "./chroma_db")
-CATEGORIES = ["pids", "oem_manuals", "regulatory", "incident_reports", "maintenance_data"]
+CATEGORIES = ["pids", "oem_manuals", "regulatory", "incident_reports", "maintenance_data", "uploaded"]
 
 
 # ── Request / Response models ─────────────────────────────────────────────────
@@ -58,6 +65,7 @@ class SourceRef(BaseModel):
     document_type: str
     description: str
     relevance_score: float
+    excerpt: str
 
 class RAGResponse(BaseModel):
     answer: str
@@ -171,7 +179,6 @@ def _ingest_uploaded_file(tmp_path: str, original_name: str):
     )
     chunks = chunk_documents([doc], verbose=False)
     embed_chunks(chunks, persist_dir=CHROMA_DIR, verbose=False)
-    Path(tmp_path).unlink(missing_ok=True)
 
 @app.post("/upload", response_model=UploadResponse, tags=["Document Upload"])
 async def upload_document(
@@ -190,17 +197,49 @@ async def upload_document(
         raise HTTPException(status_code=413, detail="File too large (max 50 MB).")
 
     content = await file.read()
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-        tmp.write(content)
-        tmp_path = tmp.name
+    file_path = f"uploads/{file.filename}"
+    with open(file_path, "wb") as f:
+        f.write(content)
 
-    background_tasks.add_task(_ingest_uploaded_file, tmp_path, file.filename)
+    background_tasks.add_task(_ingest_uploaded_file, file_path, file.filename)
 
     return UploadResponse(
         filename=file.filename,
         status="queued",
         message="Document queued for ingestion. It will appear in search results within ~30 seconds.",
     )
+
+@app.get("/documents", tags=["System"])
+def list_documents():
+    """List all ingested documents (from corpus and uploads)."""
+    res = []
+    
+    # 1. Base Corpus
+    if os.path.exists("corpus"):
+        for root, _, files in os.walk("corpus"):
+            for f in files:
+                if f.endswith(".pdf"):
+                    path = os.path.join(root, f)
+                    stat = os.stat(path)
+                    res.append({
+                        "name": f,
+                        "size": stat.st_size,
+                        "source": "corpus",
+                        "category": os.path.basename(root)
+                    })
+    
+    # 2. Uploads
+    if os.path.exists("uploads"):
+        for f in os.listdir("uploads"):
+            if f.endswith(".pdf"):
+                stat = os.stat(f"uploads/{f}")
+                res.append({
+                    "name": f,
+                    "size": stat.st_size,
+                    "source": "upload",
+                    "category": "uploaded"
+                })
+    return {"files": res}
 
 
 # ── Screen 2: AI Copilot ──────────────────────────────────────────────────────
@@ -220,7 +259,7 @@ def query_copilot(req: QueryRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# ── Screen 3: Asset Explorer (vector stub — graph layer coming) ───────────────
+# ── Screen 3: Asset Explorer (Neo4j Graph Traversal) ────────────────────────
 
 @app.get("/asset/{tag}", response_model=RAGResponse, tags=["Asset Explorer"])
 def asset_context(
@@ -229,14 +268,17 @@ def asset_context(
 ):
     """
     Pull everything the knowledge base knows about an equipment tag.
-    Click any tag on a P&ID → manuals, work orders, incidents, standards all surface.
-    Currently a rich vector search; Neo4j graph traversal will replace this.
+    Traverses the Neo4j equipment graph to include context about connected components.
     Mirrors the 'Asset Explorer — Interactive P&ID map' screen.
     """
     _require_key()
+    tag = tag.upper()
+    neighbors = get_neighbors(tag)
+    neighbors_str = f" Pay special attention to its connected equipment: {', '.join(neighbors)}." if neighbors else ""
+
     question = (
-        f"Show everything related to equipment tag {tag}: "
-        f"specifications, maintenance history, inspection findings, "
+        f"Show everything related to equipment tag {tag}.{neighbors_str} "
+        f"Include specifications, maintenance history, inspection findings, "
         f"operating procedures, and any related incident reports."
     )
     try:

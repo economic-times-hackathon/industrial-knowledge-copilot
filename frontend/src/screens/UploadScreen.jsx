@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { UploadCloud, FileText, CheckCircle2, AlertTriangle, X } from 'lucide-react'
 import { api } from '../api'
@@ -61,6 +61,16 @@ function FileRow({ item, onRemove }) {
 export default function UploadScreen() {
   const [files, setFiles] = useState([])
   const [globalError, setGlobalError] = useState(null)
+  const [indexedDocs, setIndexedDocs] = useState([])
+  const [showDocs, setShowDocs] = useState(false)
+  
+  useEffect(() => {
+    api.listDocuments().then(res => {
+      if (res.data.files) {
+        setIndexedDocs(res.data.files)
+      }
+    }).catch(err => console.error("Failed to list documents", err))
+  }, [])
 
   const onDrop = useCallback(accepted => {
     const newItems = accepted.map(f => ({
@@ -113,7 +123,10 @@ export default function UploadScreen() {
     files.filter(f => f.status === STATUS.idle).forEach(f => uploadOne(f.id))
   }
 
-  const removeFile = (id) => setFiles(prev => prev.filter(f => f.id !== id))
+  const removeFile = (id) => {
+    // Only remove from UI for now. If it's an existing file, we'd need a delete endpoint
+    setFiles(prev => prev.filter(f => f.id !== id))
+  }
 
   const pending  = files.filter(f => f.status === STATUS.idle).length
   const done     = files.filter(f => f.status === STATUS.done).length
@@ -181,7 +194,7 @@ export default function UploadScreen() {
         {[
           { step: '1', label: 'Parse',   desc: 'PyMuPDF extracts text from every page' },
           { step: '2', label: 'Chunk',   desc: 'Split into 800-char overlapping segments' },
-          { step: '3', label: 'Embed',   desc: 'OpenAI embeddings → ChromaDB vector index' },
+          { step: '3', label: 'Embed',   desc: 'FastEmbed locally → ChromaDB vector index' },
         ].map(({ step, label, desc }) => (
           <div key={step} className="rounded-lg border border-surface-600 bg-surface-800 p-3 text-center">
             <div className="w-6 h-6 rounded-full bg-accent-blue/20 text-accent-blue text-xs font-bold flex items-center justify-center mx-auto mb-2">
@@ -191,6 +204,40 @@ export default function UploadScreen() {
             <div className="text-[10px] text-gray-500 mt-1">{desc}</div>
           </div>
         ))}
+      </div>
+
+      {/* Indexed Documents Toggle */}
+      <div className="pt-4 border-t border-surface-600">
+        <button
+          onClick={() => setShowDocs(!showDocs)}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-700 hover:bg-surface-600 text-sm font-medium text-gray-200 transition-colors w-full justify-center"
+        >
+          <FileText size={16} className="text-accent-blue" />
+          {showDocs ? 'Hide Indexed Documents' : 'View Indexed Documents'} ({indexedDocs.length})
+        </button>
+
+        {showDocs && (
+          <div className="mt-4 space-y-2 max-h-96 overflow-y-auto pr-2 custom-scrollbar">
+            {indexedDocs.map((doc, idx) => (
+              <div key={idx} className="flex items-center justify-between p-3 rounded-lg border border-surface-600 bg-surface-800">
+                <div className="flex items-center gap-3 min-w-0">
+                  <FileText size={16} className={doc.source === 'upload' ? 'text-green-400' : 'text-gray-400'} shrink-0 />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-200 truncate">{doc.name}</p>
+                    <p className="text-[10px] text-gray-500 flex gap-2">
+                      <span>{(doc.size / 1024).toFixed(0)} KB</span>
+                      <span>·</span>
+                      <span className="uppercase">{doc.category}</span>
+                      <span>·</span>
+                      <span>{doc.source === 'upload' ? 'User Upload' : 'Base Corpus'}</span>
+                    </p>
+                  </div>
+                </div>
+                <CheckCircle2 size={16} className="text-green-500 shrink-0" />
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

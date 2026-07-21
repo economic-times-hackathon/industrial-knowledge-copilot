@@ -12,6 +12,9 @@ langchain-text-splitters==1.1.2
 # Vector store
 chromadb==1.3.5
 
+# Graph database
+neo4j==5.20.0
+
 # Google Gemini
 google-generativeai==0.8.6
 

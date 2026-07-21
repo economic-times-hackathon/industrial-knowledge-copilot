@@ -15,7 +15,7 @@ load_dotenv()
 from langchain_chroma import Chroma
 
 CHROMA_PERSIST_DIR = os.getenv("CHROMA_PERSIST_DIR", "./chroma_db")
-COLLECTION_NAME    = "industrial_knowledge"
+COLLECTION_NAME    = "industrial_knowledge_repaired"
 TOP_K              = int(os.getenv("TOP_K_RETRIEVAL", "8"))
 EMBEDDING_BACKEND  = os.getenv("EMBEDDING_BACKEND", "fastembed").lower()
 FASTEMBED_MODEL    = os.getenv("FASTEMBED_MODEL", "BAAI/bge-small-en-v1.5")
@@ -71,9 +71,19 @@ def retrieve(
     store = load_retriever(persist_dir)
     where = {"category": category_filter} if category_filter else None
 
-    results = store.similarity_search_with_relevance_scores(
-        query=query, k=top_k, filter=where,
-    )
+    try:
+        results = store.similarity_search_with_relevance_scores(
+            query=query, k=top_k, filter=where,
+        )
+    except Exception as e:
+        print(f"Retrieval error with k={top_k}: {e}. Retrying with k=3...")
+        try:
+            results = store.similarity_search_with_relevance_scores(
+                query=query, k=3, filter=where,
+            )
+        except Exception as e2:
+            print(f"Fallback retrieval failed: {e2}")
+            results = []
 
     chunks = []
     for doc, score in results:

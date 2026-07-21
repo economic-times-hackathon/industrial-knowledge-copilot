@@ -30,6 +30,7 @@ GEMINI_MODEL       = os.getenv("EMBEDDING_MODEL", "models/gemini-embedding-001")
 
 def _get_embeddings():
     if EMBEDDING_BACKEND == "gemini":
+        # pyrefly: ignore [missing-import]
         from langchain_google_genai import GoogleGenerativeAIEmbeddings
         api_key = os.getenv("GOOGLE_API_KEY")
         if not api_key:
