@@ -8,7 +8,8 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![React](https://img.shields.io/badge/React-Frontend-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev)
 [![ChromaDB](https://img.shields.io/badge/ChromaDB-Vector_Store-FF6B35?style=for-the-badge&logo=databricks&logoColor=white)](https://trychroma.com)
-[![OpenAI](https://img.shields.io/badge/OpenAI-GPT_4o-412991?style=for-the-badge&logo=openai&logoColor=white)](https://openai.com)
+[![Groq](https://img.shields.io/badge/Groq-LLaMA_3.3_70B-F55036?style=for-the-badge&logo=groq&logoColor=white)](https://groq.com)
+[![Gemini](https://img.shields.io/badge/Gemini-Embeddings-4285F4?style=for-the-badge&logo=google&logoColor=white)](https://aistudio.google.com)
 
 ---
 
@@ -16,7 +17,7 @@
 ![Hackathon](https://img.shields.io/badge/ET_Hackathon-2026-orange?style=flat-square)
 ![Theme](https://img.shields.io/badge/Theme-Industrial_Intelligence-blue?style=flat-square)
 ![Corpus](https://img.shields.io/badge/Corpus-102_Documents-green?style=flat-square)
-![Chunks](https://img.shields.io/badge/Indexed-13%2C779_Chunks-blue?style=flat-square)
+![Chunks](https://img.shields.io/badge/Embedding-Gemini_text--embedding--004-4285F4?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-brightgreen?style=flat-square)
 
 </div>
@@ -104,9 +105,9 @@ Full provenance in [`corpus_manifest.csv`](./corpus_manifest.csv).
 |---|---|---|
 | Document Parsing | PyMuPDF 1.28 | Done |
 | Chunking | LangChain RecursiveCharacterTextSplitter (800 chars / 150 overlap) | Done |
-| Embeddings | OpenAI `text-embedding-3-small` | Done |
+| Embeddings | Google Gemini `text-embedding-004` (768 dims, free tier) | Done |
 | Vector Store | ChromaDB 1.1 — local persistence, incremental upsert | Done |
-| LLM / RAG | GPT-4o via LangChain — 4 prompt modes | Done |
+| LLM / RAG | Groq `llama-3.3-70b-versatile` via LangChain — 4 prompt modes | Done |
 | Backend API | FastAPI 0.111 + Uvicorn — 6 screen endpoints | Done |
 | Async Ingestion | FastAPI BackgroundTasks — upload → parse → embed | Done |
 | Frontend | React 18 + Tailwind 3 + Vite — 6-screen dashboard | Done |

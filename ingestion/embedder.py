@@ -1,43 +1,52 @@
 """
-Embedder — generates OpenAI embeddings for chunks and stores them in ChromaDB.
-Supports incremental indexing (skips already-indexed chunks).
+Embedder — generates Google Gemini embeddings and stores in ChromaDB.
+Uses GoogleGenerativeAIEmbeddings (text-embedding-004, 768 dims, free tier).
+No OpenAI dependency.
 """
 import os
-import hashlib
 from pathlib import Path
 from tqdm import tqdm
 
 from dotenv import load_dotenv
 load_dotenv()
 
-from langchain_openai import OpenAIEmbeddings
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_chroma import Chroma
 from langchain_core.documents import Document as LCDocument
 
 from ingestion.chunker import DocumentChunk
 
 CHROMA_PERSIST_DIR = os.getenv("CHROMA_PERSIST_DIR", "./chroma_db")
-EMBEDDING_MODEL    = os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")
+EMBEDDING_MODEL    = os.getenv("EMBEDDING_MODEL", "models/text-embedding-004")
 COLLECTION_NAME    = "industrial_knowledge"
 
 
+def _get_embeddings():
+    """Return Gemini embedding model — requires GOOGLE_API_KEY in .env."""
+    api_key = os.getenv("GOOGLE_API_KEY")
+    if not api_key:
+        raise EnvironmentError(
+            "GOOGLE_API_KEY not set. Get a free key at https://aistudio.google.com/apikey "
+            "and add GOOGLE_API_KEY=... to your .env file."
+        )
+    return GoogleGenerativeAIEmbeddings(
+        google_api_key=api_key,
+        model=EMBEDDING_MODEL,
+        task_type="retrieval_document",
+    )
+
+
 def get_vector_store(persist_dir: str = CHROMA_PERSIST_DIR) -> Chroma:
-    """Load or create the ChromaDB vector store."""
-    embeddings = OpenAIEmbeddings(model=EMBEDDING_MODEL)
-    store = Chroma(
+    """Load or create the ChromaDB vector store with Gemini embeddings."""
+    return Chroma(
         collection_name=COLLECTION_NAME,
-        embedding_function=embeddings,
+        embedding_function=_get_embeddings(),
         persist_directory=persist_dir,
     )
-    return store
 
 
 def chunk_to_lc_document(chunk: DocumentChunk) -> LCDocument:
-    """Convert our DocumentChunk to a LangChain Document."""
-    return LCDocument(
-        page_content=chunk.text,
-        metadata=chunk.metadata,
-    )
+    return LCDocument(page_content=chunk.text, metadata=chunk.metadata)
 
 
 def embed_chunks(
@@ -47,12 +56,11 @@ def embed_chunks(
     verbose: bool = True,
 ) -> Chroma:
     """
-    Embed all chunks and upsert into ChromaDB.
-    Uses chunk_id as the document ID for idempotent upserts.
+    Embed all chunks with Gemini text-embedding-004 and upsert into ChromaDB.
+    Idempotent — skips chunks already indexed by chunk_id.
     """
     store = get_vector_store(persist_dir)
 
-    # Check existing IDs to skip already-indexed chunks
     existing_ids: set[str] = set()
     try:
         existing = store.get(include=[])
@@ -64,30 +72,31 @@ def embed_chunks(
 
     new_chunks = [c for c in chunks if c.chunk_id not in existing_ids]
     if verbose:
-        print(f"  Chunks to index: {len(new_chunks)} (skipping {len(chunks) - len(new_chunks)} duplicates)")
+        print(f"  Chunks to index: {len(new_chunks)} "
+              f"(skipping {len(chunks) - len(new_chunks)} already indexed)")
 
     if not new_chunks:
         print("  Nothing new to index.")
         return store
 
-    # Batch upsert
     lc_docs = [chunk_to_lc_document(c) for c in new_chunks]
-    ids      = [c.chunk_id for c in new_chunks]
+    ids     = [c.chunk_id for c in new_chunks]
 
-    for i in tqdm(range(0, len(lc_docs), batch_size), desc="Embedding batches", disable=not verbose):
-        batch_docs = lc_docs[i : i + batch_size]
-        batch_ids  = ids[i : i + batch_size]
-        store.add_documents(documents=batch_docs, ids=batch_ids)
+    for i in tqdm(range(0, len(lc_docs), batch_size),
+                  desc="Embedding batches (Gemini)", disable=not verbose):
+        store.add_documents(
+            documents=lc_docs[i : i + batch_size],
+            ids=ids[i : i + batch_size],
+        )
 
     if verbose:
         total = len(existing_ids) + len(new_chunks)
-        print(f"\n  ChromaDB collection '{COLLECTION_NAME}': {total} total chunks indexed")
+        print(f"\n  ChromaDB '{COLLECTION_NAME}': {total} total chunks indexed")
 
     return store
 
 
 def get_collection_stats(persist_dir: str = CHROMA_PERSIST_DIR) -> dict:
-    """Return stats about the current ChromaDB collection."""
     store = get_vector_store(persist_dir)
     result = store.get(include=[])
     ids = result.get("ids", [])
@@ -97,33 +106,4 @@ def get_collection_stats(persist_dir: str = CHROMA_PERSIST_DIR) -> dict:
         cat = (meta or {}).get("category", "unknown")
         categories[cat] = categories.get(cat, 0) + 1
 
-    return {
-        "total_chunks": len(ids),
-        "chunks_by_category": categories,
-    }
-
-
-if __name__ == "__main__":
-    from pathlib import Path
-    from ingestion.pdf_parser import parse_corpus
-    from ingestion.chunker import chunk_documents
-
-    root = Path(__file__).parent.parent
-    print("Step 1: Parsing PDFs...")
-    docs = parse_corpus(
-        corpus_root=str(root / "corpus"),
-        manifest_path=str(root / "corpus_manifest.csv"),
-        verbose=True,
-    )
-
-    print("\nStep 2: Chunking...")
-    chunks = chunk_documents(docs, verbose=True)
-
-    print("\nStep 3: Embedding & indexing...")
-    store = embed_chunks(chunks, verbose=True)
-
-    print("\nStep 4: Collection stats:")
-    stats = get_collection_stats()
-    print(f"  Total chunks: {stats['total_chunks']}")
-    for cat, count in sorted(stats["chunks_by_category"].items()):
-        print(f"    {cat}: {count} chunks")
+    return {"total_chunks": len(ids), "chunks_by_category": categories}
