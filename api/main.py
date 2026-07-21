@@ -26,6 +26,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from rag_engine.copilot import ask, rca_query, compliance_check, notify_scan
+from rag_engine.graph import get_neighbors
 from ingestion.embedder import get_collection_stats
 
 app = FastAPI(
@@ -258,7 +259,7 @@ def query_copilot(req: QueryRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# ── Screen 3: Asset Explorer (vector stub — graph layer coming) ───────────────
+# ── Screen 3: Asset Explorer (Neo4j Graph Traversal) ────────────────────────
 
 @app.get("/asset/{tag}", response_model=RAGResponse, tags=["Asset Explorer"])
 def asset_context(
@@ -267,14 +268,17 @@ def asset_context(
 ):
     """
     Pull everything the knowledge base knows about an equipment tag.
-    Click any tag on a P&ID → manuals, work orders, incidents, standards all surface.
-    Currently a rich vector search; Neo4j graph traversal will replace this.
+    Traverses the Neo4j equipment graph to include context about connected components.
     Mirrors the 'Asset Explorer — Interactive P&ID map' screen.
     """
     _require_key()
+    tag = tag.upper()
+    neighbors = get_neighbors(tag)
+    neighbors_str = f" Pay special attention to its connected equipment: {', '.join(neighbors)}." if neighbors else ""
+
     question = (
-        f"Show everything related to equipment tag {tag}: "
-        f"specifications, maintenance history, inspection findings, "
+        f"Show everything related to equipment tag {tag}.{neighbors_str} "
+        f"Include specifications, maintenance history, inspection findings, "
         f"operating procedures, and any related incident reports."
     )
     try:
