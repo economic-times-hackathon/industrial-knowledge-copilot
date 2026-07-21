@@ -6,51 +6,79 @@
   * { box-sizing: border-box; }
 
   body {
-    @apply bg-surface-900 text-gray-200 font-sans antialiased;
+    @apply bg-surface-50 text-gray-900 font-sans antialiased bg-fixed;
     font-family: 'Inter', system-ui, sans-serif;
+    background-image: 
+      radial-gradient(circle at 15% 50%, rgba(2, 132, 199, 0.04) 0%, transparent 50%),
+      radial-gradient(circle at 85% 30%, rgba(37, 99, 235, 0.05) 0%, transparent 50%);
   }
 
-  /* Scrollbar */
+  h1, h2, h3, h4, h5, h6, .font-display {
+    font-family: 'Outfit', system-ui, sans-serif;
+  }
+
+  /* Custom Clean Scrollbar */
   ::-webkit-scrollbar { width: 6px; height: 6px; }
-  ::-webkit-scrollbar-track { @apply bg-surface-800; }
-  ::-webkit-scrollbar-thumb { @apply bg-surface-500 rounded-full; }
-  ::-webkit-scrollbar-thumb:hover { @apply bg-surface-500; }
+  ::-webkit-scrollbar-track { @apply bg-surface-100; }
+  ::-webkit-scrollbar-thumb { @apply bg-surface-300 rounded-full border border-surface-200/50 hover:bg-surface-400 transition-colors; }
+}
+
+@layer utilities {
+  .glass-panel {
+    @apply bg-white/70 backdrop-blur-md border border-surface-200 shadow-md;
+  }
+  .glass-card {
+    @apply bg-white/50 backdrop-blur-sm border border-surface-200 rounded-xl shadow-sm hover:border-surface-300 transition-all duration-300 hover:shadow-md hover:bg-white/80;
+  }
+  .neon-text-cyan {
+    @apply text-accent-cyan;
+    text-shadow: 0 0 10px rgba(2, 132, 199, 0.2);
+  }
+  .neon-border-cyan {
+    @apply border-accent-cyan shadow-[0_0_10px_rgba(2,132,199,0.1)];
+  }
 }
 
 @layer components {
   /* Markdown prose inside answer panels */
   .prose-industrial {
-    @apply text-gray-300 leading-relaxed text-sm;
+    @apply text-gray-700 leading-relaxed text-[15px];
   }
   .prose-industrial h2 {
-    @apply text-accent-blue font-semibold text-base mt-5 mb-2 border-b border-surface-600 pb-1;
+    @apply font-display text-accent-cyan font-semibold text-lg mt-6 mb-3 border-b border-surface-200 pb-2 flex items-center gap-2;
   }
   .prose-industrial h3 {
-    @apply text-gray-200 font-medium text-sm mt-3 mb-1;
+    @apply font-display text-gray-900 font-medium text-base mt-4 mb-2;
   }
   .prose-industrial p {
-    @apply mb-3;
+    @apply mb-4;
   }
   .prose-industrial ul, .prose-industrial ol {
-    @apply ml-4 mb-3 space-y-1;
+    @apply ml-5 mb-4 space-y-2;
   }
   .prose-industrial li {
-    @apply text-gray-300;
+    @apply text-gray-700 relative;
   }
   .prose-industrial li::marker {
-    @apply text-accent-blue;
+    @apply text-accent-cyan font-bold;
   }
   .prose-industrial strong {
-    @apply text-gray-100 font-semibold;
+    @apply text-gray-900 font-semibold;
   }
   .prose-industrial code {
-    @apply font-mono text-accent-orange bg-surface-700 px-1 py-0.5 rounded text-xs;
+    @apply font-mono text-accent-cyan bg-surface-100 border border-surface-200 px-1.5 py-0.5 rounded text-[13px];
   }
   .prose-industrial blockquote {
-    @apply border-l-2 border-accent-blue pl-3 text-gray-400 italic;
+    @apply border-l-2 border-accent-cyan pl-4 py-1 my-4 text-gray-600 italic bg-accent-cyan/5 rounded-r-lg;
+  }
+  .prose-industrial pre {
+    @apply bg-surface-100 border border-surface-200 rounded-lg p-4 overflow-x-auto my-4;
+  }
+  .prose-industrial pre code {
+    @apply bg-transparent border-0 p-0 text-gray-800 text-[13px];
   }
   /* Citation links */
   .prose-industrial a {
-    @apply text-accent-blue underline;
+    @apply text-accent-cyan underline underline-offset-4 decoration-accent-cyan/30 hover:decoration-accent-cyan transition-colors;
   }
 }

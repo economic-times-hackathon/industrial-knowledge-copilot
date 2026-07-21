@@ -22,12 +22,12 @@ export default function App() {
   const { title, component: Screen } = SCREENS[active] ?? SCREENS.copilot
 
   return (
-    <div className="min-h-screen bg-surface-900">
+    <div className="min-h-screen bg-transparent relative selection:bg-accent-cyan/30 selection:text-accent-cyan">
       <Sidebar active={active} onNavigate={setActive} notifyCount={3} />
-      <div className="ml-56">
+      <div className="ml-64 transition-all duration-300">
         <Header screenTitle={title} />
-        <main className="pt-14 min-h-screen">
-          <div className="p-6 max-w-5xl mx-auto">
+        <main className="pt-20 pb-10 min-h-screen">
+          <div className="p-6 max-w-5xl mx-auto relative z-10">
             <Screen />
           </div>
         </main>

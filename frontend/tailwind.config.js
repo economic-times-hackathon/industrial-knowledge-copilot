@@ -4,24 +4,32 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Dark industrial palette
+        // Light Clean Enterprise palette
         surface: {
-          900: '#0d1117',
-          800: '#161b22',
-          700: '#21262d',
-          600: '#30363d',
-          500: '#484f58',
+          50: '#F8FAFC',
+          100: '#F1F5F9',
+          200: '#E2E8F0',
+          300: '#CBD5E1',
+          400: '#94A3B8',
+          500: '#64748B',
+          600: '#475569',
+          700: '#334155',
+          800: '#1E293B',
+          900: '#0F172A',
+          950: '#020617',
         },
         accent: {
-          blue:   '#58a6ff',
-          green:  '#3fb950',
-          orange: '#e3b341',
-          red:    '#f85149',
-          purple: '#bc8cff',
-          teal:   '#39d353',
+          cyan:   '#0284C7',
+          blue:   '#2563EB',
+          amber:  '#D97706',
+          red:    '#E11D48',
+          purple: '#9333EA',
+          emerald: '#059669',
         },
       },
       fontFamily: {
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        display: ['Outfit', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
       },
     },
