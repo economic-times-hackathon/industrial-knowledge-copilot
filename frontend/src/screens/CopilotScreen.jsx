@@ -15,14 +15,7 @@ const CATEGORIES = [
   { value: 'incident_reports', label: 'Incidents' },
   { value: 'maintenance_data', label: 'Maintenance' },
   { value: 'uploaded',         label: 'Uploaded Docs' },
-]
-
-const STARTERS = [
-  'What is process safety management?',
-  'How do you perform pump maintenance?',
-  'What are the safety requirements for confined spaces?',
-  'Tell me about pressure relief valve testing',
-  'What should I know about emergency procedures?',
+  { value: 'expert_knowledge', label: 'Expert Knowledge' },
 ]
 
 function Message({ msg }) {
@@ -85,8 +78,54 @@ export default function CopilotScreen() {
   const [category, setCategory]   = useState('')
   const [loading, setLoading]     = useState(false)
   const [error, setError]         = useState(null)
+  const [sampleQuestions, setSampleQuestions] = useState([
+    'What is process safety management?',
+    'How do you perform pump maintenance?',
+    'What are the safety requirements for confined spaces?',
+    'Tell me about pressure relief valve testing',
+    'What should I know about emergency procedures?',
+  ])
   const bottomRef = useRef(null)
   const inputRef  = useRef(null)
+
+  // Load dynamic sample questions based on indexed content
+  useEffect(() => {
+    const loadSampleQuestions = async () => {
+      try {
+        const statsResponse = await api.stats()
+        const categories = Object.keys(statsResponse.chunks_by_category || {})
+        
+        if (categories.length > 0) {
+          const dynamicQuestions = []
+          
+          if (categories.includes('incident_reports')) {
+            dynamicQuestions.push('What caused the BP Texas City explosion?')
+          }
+          if (categories.includes('maintenance_data')) {
+            dynamicQuestions.push('How do you perform pump bearing maintenance?')
+          }
+          if (categories.includes('regulatory')) {
+            dynamicQuestions.push('What are OISD safety requirements?')
+          }
+          if (categories.includes('oem_manuals')) {
+            dynamicQuestions.push('How do you install centrifugal pumps?')
+          }
+          if (categories.includes('uploaded')) {
+            dynamicQuestions.push('What information is in the uploaded documents?')
+          }
+          
+          if (dynamicQuestions.length > 0) {
+            setSampleQuestions(dynamicQuestions)
+          }
+        }
+      } catch (err) {
+        // Keep default questions if API fails
+        console.log('Using default sample questions')
+      }
+    }
+    
+    loadSampleQuestions()
+  }, [])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -160,7 +199,7 @@ export default function CopilotScreen() {
               <p className="text-xs text-gray-700 mt-1 px-4">102 documents • 13,779 indexed chunks • GPT-4o</p>
             </div>
             <div className="grid gap-2 px-4">
-              {STARTERS.map(s => (
+              {sampleQuestions.map(s => (
                 <button
                   key={s}
                   onClick={() => send(s)}

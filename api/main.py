@@ -21,6 +21,7 @@ from fastapi import FastAPI, HTTPException, UploadFile, File, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
+from langchain_core.messages import HumanMessage, SystemMessage
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -31,7 +32,6 @@ try:
 except ImportError:
     # Neo4j not installed - use stub implementation
     def get_neighbors(tag): return []
-from ingestion.embedder import get_collection_stats
 
 app = FastAPI(
     title="Industrial Knowledge Intelligence API",
@@ -56,7 +56,7 @@ app.mount("/corpus", StaticFiles(directory="corpus"), name="corpus")
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 CHROMA_DIR = os.getenv("CHROMA_PERSIST_DIR", "./chroma_db")
-CATEGORIES = ["pids", "oem_manuals", "regulatory", "incident_reports", "maintenance_data", "uploaded"]
+CATEGORIES = ["pids", "oem_manuals", "regulatory", "incident_reports", "maintenance_data", "uploaded", "expert_knowledge"]
 
 
 # ── Request / Response models ─────────────────────────────────────────────────
@@ -148,9 +148,11 @@ def list_categories():
 @app.get("/corpus/stats", response_model=StatsResponse, tags=["System"])
 def corpus_stats():
     try:
-        return StatsResponse(**get_collection_stats(CHROMA_DIR))
+        from ingestion.embedder import get_collection_stats
+        stats = get_collection_stats(CHROMA_DIR)
+        return StatsResponse(**stats)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Stats error: {str(e)}")
 
 
 # ── Screen 1: Document Upload ─────────────────────────────────────────────────
@@ -342,6 +344,85 @@ def get_notifications(top_k: int = 10):
         return _to_rag_response(notify_scan(top_k=top_k, persist_dir=CHROMA_DIR))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ── Screen 7: Knowledge Capture ──────────────────────────────────────────────
+
+class CaptureRequest(BaseModel):
+    transcript: str = Field(..., description="Speech transcript from expert")
+    equipment_context: str = Field(..., description="Equipment tag or context")
+    session_type: str = Field("procedure_walkthrough", description="Type of knowledge session")
+    photos: Optional[list[str]] = Field(None, description="Base64 encoded photos (optional)")
+
+@app.post("/capture/process", tags=["Knowledge Capture"])
+def process_knowledge_capture(req: CaptureRequest):
+    """
+    Process captured expert knowledge (speech + photos) into structured, searchable format.
+    Converts informal expert explanations into documented procedures and adds to knowledge base.
+    """
+    _require_key()
+    
+    try:
+        # Use LLM to structure the knowledge
+        llm = _get_llm()
+        
+        system_prompt = """You are an Industrial Knowledge Extraction AI. Convert expert explanations into structured, searchable procedures.
+
+Extract and format:
+1. **Equipment**: Equipment tag/context
+2. **Procedure Type**: What kind of knowledge this represents
+3. **Safety Requirements**: Critical safety steps (LOTO, PPE, hazards)
+4. **Step-by-step Instructions**: Numbered procedure steps
+5. **Expert Tips**: Tacit knowledge, warnings, "feel" indicators
+6. **Troubleshooting**: Diagnostic steps if mentioned
+
+Format as clear, searchable text that preserves the expert's knowledge."""
+
+        user_message = f"""Equipment Context: {req.equipment_context}
+Session Type: {req.session_type}
+Expert Transcript: {req.transcript}
+
+Convert this expert knowledge into structured documentation."""
+
+        response = llm.invoke([
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=user_message),
+        ])
+        
+        structured_knowledge = response.content
+        
+        # Store in ChromaDB as expert knowledge
+        from ingestion.embedder import get_vector_store
+        from langchain_core.documents import Document
+        import uuid
+        
+        doc = Document(
+            page_content=structured_knowledge,
+            metadata={
+                "filename": f"Expert_Knowledge_{req.equipment_context}_{uuid.uuid4().hex[:8]}.txt",
+                "category": "expert_knowledge",
+                "source_url": "expert-capture",
+                "document_type": "EXPERT_KNOWLEDGE",
+                "description": f"Expert knowledge: {req.equipment_context} - {req.session_type}",
+                "equipment_context": req.equipment_context,
+                "session_type": req.session_type,
+                "chunk_id": f"expert_{uuid.uuid4().hex[:8]}"
+            }
+        )
+        
+        # Add to vector store
+        store = get_vector_store(persist_dir=CHROMA_DIR)
+        store.add_documents([doc])
+        
+        return {
+            "status": "success",
+            "structured_knowledge": structured_knowledge,
+            "message": "Expert knowledge captured and indexed successfully",
+            "equipment_context": req.equipment_context
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Knowledge processing failed: {str(e)}")
 
 
 if __name__ == "__main__":
