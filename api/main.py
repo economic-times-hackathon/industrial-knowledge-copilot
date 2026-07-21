@@ -229,12 +229,13 @@ def list_documents():
                     })
     
     # 2. Uploads
-    if os.path.exists("uploads"):
-        for f in os.listdir("uploads"):
-            if f.endswith(".pdf"):
-                stat = os.stat(f"uploads/{f}")
+    uploads_dir = Path("uploads")
+    if uploads_dir.exists():
+        for upload_file in uploads_dir.iterdir():
+            if upload_file.suffix.lower() == ".pdf":
+                stat = upload_file.stat()
                 res.append({
-                    "name": f,
+                    "name": upload_file.name,
                     "size": stat.st_size,
                     "source": "upload",
                     "category": "uploaded"
