@@ -1,6 +1,6 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { UploadCloud, FileText, CheckCircle2, AlertTriangle, X } from 'lucide-react'
+import { UploadCloud, FileText, CheckCircle2, AlertTriangle, X, RefreshCw } from 'lucide-react'
 import { api } from '../api'
 import Spinner from '../components/Spinner'
 import ErrorBanner from '../components/ErrorBanner'
@@ -63,14 +63,30 @@ export default function UploadScreen() {
   const [globalError, setGlobalError] = useState(null)
   const [indexedDocs, setIndexedDocs] = useState([])
   const [showDocs, setShowDocs] = useState(false)
-  
-  useEffect(() => {
+  const [docsLoading, setDocsLoading] = useState(false)
+  const prevDoneCount = useRef(0)
+
+  const refreshDocs = useCallback(() => {
+    setDocsLoading(true)
     api.listDocuments().then(res => {
-      if (res.data.files) {
-        setIndexedDocs(res.data.files)
-      }
-    }).catch(err => console.error("Failed to list documents", err))
+      if (res.data.files) setIndexedDocs(res.data.files)
+    }).catch(err => console.error('Failed to list documents', err))
+    .finally(() => setDocsLoading(false))
   }, [])
+
+  // Load on mount
+  useEffect(() => { refreshDocs() }, [refreshDocs])
+
+  // Auto-refresh whenever a new file finishes indexing
+  const doneCount = files.filter(f => f.status === STATUS.done).length
+  useEffect(() => {
+    if (doneCount > prevDoneCount.current) {
+      prevDoneCount.current = doneCount
+      // Wait a beat for the background task to finish before re-fetching
+      const t = setTimeout(refreshDocs, 1500)
+      return () => clearTimeout(t)
+    }
+  }, [doneCount, refreshDocs])
 
   const onDrop = useCallback(accepted => {
     const newItems = accepted.map(f => ({
@@ -110,6 +126,8 @@ export default function UploadScreen() {
             : f
         ))
       }, 4000)
+      // Also refresh the document list after backend finishes (~30s as per API docs)
+      setTimeout(refreshDocs, 32000)
     } catch (err) {
       const msg = err?.response?.data?.detail ?? err.message
       setFiles(prev => prev.map(f =>
@@ -208,13 +226,23 @@ export default function UploadScreen() {
 
       {/* Indexed Documents Toggle */}
       <div className="pt-4 border-t border-surface-600">
-        <button
-          onClick={() => setShowDocs(!showDocs)}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-700 hover:bg-surface-600 text-sm font-medium text-gray-200 transition-colors w-full justify-center"
-        >
-          <FileText size={16} className="text-accent-blue" />
-          {showDocs ? 'Hide Indexed Documents' : 'View Indexed Documents'} ({indexedDocs.length})
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowDocs(!showDocs)}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-700 hover:bg-surface-600 text-sm font-medium text-gray-200 transition-colors flex-1 justify-center"
+          >
+            <FileText size={16} className="text-accent-blue" />
+            {showDocs ? 'Hide Indexed Documents' : 'View Indexed Documents'} ({indexedDocs.length})
+          </button>
+          <button
+            onClick={refreshDocs}
+            disabled={docsLoading}
+            title="Refresh document list"
+            className="flex items-center justify-center w-10 rounded-lg bg-surface-700 hover:bg-surface-600 text-gray-400 hover:text-gray-200 transition-colors disabled:opacity-40"
+          >
+            <RefreshCw size={15} className={docsLoading ? 'animate-spin' : ''} />
+          </button>
+        </div>
 
         {showDocs && (
           <div className="mt-4 space-y-2 max-h-96 overflow-y-auto pr-2 custom-scrollbar">
