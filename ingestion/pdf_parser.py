@@ -2,6 +2,7 @@
 PDF Parser — extracts text from all corpus PDFs using PyMuPDF.
 Handles scanned PDFs gracefully (returns empty text, flags for OCR).
 """
+# pyrefly: ignore [missing-import]
 import fitz  # PyMuPDF
 import csv
 import os
