@@ -4,27 +4,27 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Light Clean Enterprise palette
+        // Black & White Professional palette
         surface: {
-          50: '#F8FAFC',
-          100: '#F1F5F9',
-          200: '#E2E8F0',
-          300: '#CBD5E1',
-          400: '#94A3B8',
-          500: '#64748B',
-          600: '#475569',
-          700: '#334155',
-          800: '#1E293B',
-          900: '#0F172A',
-          950: '#020617',
+          50:  '#FFFFFF',
+          100: '#F5F5F5',
+          200: '#E8E8E8',
+          300: '#D0D0D0',
+          400: '#A0A0A0',
+          500: '#707070',
+          600: '#505050',
+          700: '#303030',
+          800: '#1A1A1A',
+          900: '#0D0D0D',
+          950: '#000000',
         },
         accent: {
-          cyan:   '#0284C7',
-          blue:   '#2563EB',
-          amber:  '#D97706',
-          red:    '#E11D48',
-          purple: '#9333EA',
-          emerald: '#059669',
+          cyan:    '#000000',   // remapped to black for B&W
+          blue:    '#111111',
+          amber:   '#555555',
+          red:     '#222222',
+          purple:  '#333333',
+          emerald: '#444444',
         },
       },
       fontFamily: {

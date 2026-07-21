@@ -17,17 +17,35 @@ const SCREENS = {
   notify:      { title: 'Notifications',     component: NotifyScreen },
 }
 
+// Width in px matching the Tailwind classes used in Sidebar
+const SIDEBAR_EXPANDED  = 256  // w-64
+const SIDEBAR_COLLAPSED = 68   // w-[68px]
+
 export default function App() {
-  const [active, setActive] = useState('copilot')
+  const [active, setActive]       = useState('copilot')
+  const [collapsed, setCollapsed] = useState(false)
+
   const { title, component: Screen } = SCREENS[active] ?? SCREENS.copilot
+  const sidebarWidth = collapsed ? SIDEBAR_COLLAPSED : SIDEBAR_EXPANDED
 
   return (
-    <div className="min-h-screen bg-transparent relative selection:bg-accent-cyan/30 selection:text-accent-cyan">
-      <Sidebar active={active} onNavigate={setActive} notifyCount={3} />
-      <div className="ml-64 transition-all duration-300">
-        <Header screenTitle={title} />
+    <div className="min-h-screen bg-gray-50 selection:bg-black selection:text-white">
+      <Sidebar
+        active={active}
+        onNavigate={setActive}
+        notifyCount={3}
+        collapsed={collapsed}
+        onToggle={() => setCollapsed(c => !c)}
+      />
+
+      {/* Main content shifts with the sidebar */}
+      <div
+        className="transition-all duration-300 ease-in-out"
+        style={{ marginLeft: sidebarWidth }}
+      >
+        <Header screenTitle={title} sidebarWidth={sidebarWidth} />
         <main className="pt-20 pb-10 min-h-screen">
-          <div className="p-6 max-w-5xl mx-auto relative z-10">
+          <div className="p-8 max-w-5xl mx-auto">
             <Screen />
           </div>
         </main>

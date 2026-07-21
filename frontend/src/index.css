@@ -6,79 +6,96 @@
   * { box-sizing: border-box; }
 
   body {
-    @apply bg-surface-50 text-gray-900 font-sans antialiased bg-fixed;
+    @apply bg-white text-gray-900 font-sans antialiased;
     font-family: 'Inter', system-ui, sans-serif;
-    background-image: 
-      radial-gradient(circle at 15% 50%, rgba(2, 132, 199, 0.04) 0%, transparent 50%),
-      radial-gradient(circle at 85% 30%, rgba(37, 99, 235, 0.05) 0%, transparent 50%);
   }
 
   h1, h2, h3, h4, h5, h6, .font-display {
     font-family: 'Outfit', system-ui, sans-serif;
+    @apply text-black;
   }
 
-  /* Custom Clean Scrollbar */
+  /* Clean Scrollbar */
   ::-webkit-scrollbar { width: 6px; height: 6px; }
-  ::-webkit-scrollbar-track { @apply bg-surface-100; }
-  ::-webkit-scrollbar-thumb { @apply bg-surface-300 rounded-full border border-surface-200/50 hover:bg-surface-400 transition-colors; }
+  ::-webkit-scrollbar-track { @apply bg-gray-100; }
+  ::-webkit-scrollbar-thumb { @apply bg-gray-300 rounded-full hover:bg-gray-400 transition-colors; }
 }
 
 @layer utilities {
+  /* Core panel — white card with strong border */
   .glass-panel {
-    @apply bg-white/70 backdrop-blur-md border border-surface-200 shadow-md;
+    @apply bg-white border border-gray-200 shadow-sm;
   }
   .glass-card {
-    @apply bg-white/50 backdrop-blur-sm border border-surface-200 rounded-xl shadow-sm hover:border-surface-300 transition-all duration-300 hover:shadow-md hover:bg-white/80;
+    @apply bg-white border border-gray-200 rounded-xl shadow-sm hover:border-gray-400 hover:shadow-md transition-all duration-200;
   }
-  .neon-text-cyan {
-    @apply text-accent-cyan;
-    text-shadow: 0 0 10px rgba(2, 132, 199, 0.2);
-  }
-  .neon-border-cyan {
-    @apply border-accent-cyan shadow-[0_0_10px_rgba(2,132,199,0.1)];
-  }
+  /* Kept for compatibility — just text black now */
+  .neon-text-cyan  { @apply text-black; }
+  .neon-border-cyan { @apply border-black; }
 }
 
 @layer components {
-  /* Markdown prose inside answer panels */
+  /* ── Markdown prose inside answer panels ── */
   .prose-industrial {
-    @apply text-gray-700 leading-relaxed text-[15px];
+    @apply text-gray-800 leading-relaxed text-[15px];
   }
   .prose-industrial h2 {
-    @apply font-display text-accent-cyan font-semibold text-lg mt-6 mb-3 border-b border-surface-200 pb-2 flex items-center gap-2;
+    @apply font-display text-black font-bold text-lg mt-6 mb-3 border-b-2 border-black pb-2;
   }
   .prose-industrial h3 {
-    @apply font-display text-gray-900 font-medium text-base mt-4 mb-2;
+    @apply font-display text-black font-semibold text-base mt-4 mb-2;
   }
   .prose-industrial p {
-    @apply mb-4;
+    @apply mb-4 text-gray-800;
   }
-  .prose-industrial ul, .prose-industrial ol {
+  .prose-industrial ul,
+  .prose-industrial ol {
     @apply ml-5 mb-4 space-y-2;
   }
   .prose-industrial li {
-    @apply text-gray-700 relative;
+    @apply text-gray-800 relative;
   }
   .prose-industrial li::marker {
-    @apply text-accent-cyan font-bold;
+    @apply text-black font-bold;
   }
   .prose-industrial strong {
-    @apply text-gray-900 font-semibold;
+    @apply text-black font-bold;
+  }
+  .prose-industrial em {
+    @apply text-gray-700 italic;
   }
   .prose-industrial code {
-    @apply font-mono text-accent-cyan bg-surface-100 border border-surface-200 px-1.5 py-0.5 rounded text-[13px];
+    @apply font-mono text-black bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded text-[13px];
   }
   .prose-industrial blockquote {
-    @apply border-l-2 border-accent-cyan pl-4 py-1 my-4 text-gray-600 italic bg-accent-cyan/5 rounded-r-lg;
+    @apply border-l-4 border-black pl-4 py-1 my-4 text-gray-600 italic bg-gray-50 rounded-r-lg;
   }
   .prose-industrial pre {
-    @apply bg-surface-100 border border-surface-200 rounded-lg p-4 overflow-x-auto my-4;
+    @apply bg-gray-950 border border-gray-800 rounded-lg p-4 overflow-x-auto my-4;
   }
   .prose-industrial pre code {
-    @apply bg-transparent border-0 p-0 text-gray-800 text-[13px];
+    @apply bg-transparent border-0 p-0 text-gray-100 text-[13px];
   }
-  /* Citation links */
   .prose-industrial a {
-    @apply text-accent-cyan underline underline-offset-4 decoration-accent-cyan/30 hover:decoration-accent-cyan transition-colors;
+    @apply text-black underline underline-offset-4 font-medium hover:text-gray-600 transition-colors;
+  }
+
+  /* ── Shared form / input base ── */
+  .input-bw {
+    @apply w-full bg-white border border-gray-300 rounded-lg px-3 py-2.5 text-sm text-black placeholder-gray-400
+           focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-colors;
+  }
+  .btn-primary {
+    @apply flex items-center justify-center gap-2 rounded-lg bg-black px-5 py-2.5 text-sm font-semibold text-white
+           hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors;
+  }
+  .btn-secondary {
+    @apply flex items-center justify-center gap-2 rounded-lg bg-white border border-gray-300 px-5 py-2.5 text-sm font-medium text-black
+           hover:bg-gray-100 disabled:opacity-40 transition-colors;
+  }
+
+  /* ── Card shell ── */
+  .card-bw {
+    @apply bg-white border border-gray-200 rounded-xl shadow-sm;
   }
 }
