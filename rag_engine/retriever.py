@@ -1,7 +1,9 @@
 """
-Retriever — semantic search over ChromaDB using Gemini embeddings.
-query_type="retrieval_query" is used at search time
-(vs "retrieval_document" used at index time) — this is the correct Gemini pattern.
+Retriever — semantic search over ChromaDB.
+
+Uses the same embedding backend as the ingestion pipeline (FastEmbed by default).
+MUST match the embedding model used at index time — mismatched models cause
+dimension errors or silent garbage results.
 """
 import os
 from dataclasses import dataclass
@@ -11,12 +13,13 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from langchain_chroma import Chroma
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
 
 CHROMA_PERSIST_DIR = os.getenv("CHROMA_PERSIST_DIR", "./chroma_db")
-EMBEDDING_MODEL    = os.getenv("EMBEDDING_MODEL", "gemini-embedding-001")
 COLLECTION_NAME    = "industrial_knowledge"
 TOP_K              = int(os.getenv("TOP_K_RETRIEVAL", "8"))
+EMBEDDING_BACKEND  = os.getenv("EMBEDDING_BACKEND", "fastembed").lower()
+FASTEMBED_MODEL    = os.getenv("FASTEMBED_MODEL", "BAAI/bge-small-en-v1.5")
+GEMINI_MODEL       = os.getenv("EMBEDDING_MODEL", "models/gemini-embedding-001")
 
 
 @dataclass
@@ -32,14 +35,23 @@ class RetrievedChunk:
 
 
 def _get_query_embeddings():
-    api_key = os.getenv("GOOGLE_API_KEY")
-    if not api_key:
-        raise EnvironmentError("GOOGLE_API_KEY not set. See .env.example.")
-    return GoogleGenerativeAIEmbeddings(
-        google_api_key=api_key,
-        model=EMBEDDING_MODEL,
-        task_type="retrieval_query",   # different task type for queries vs documents
-    )
+    """
+    Return the same embedding model used at ingestion time.
+    FastEmbed uses task_type='query' automatically for retrieval.
+    """
+    if EMBEDDING_BACKEND == "gemini":
+        from langchain_google_genai import GoogleGenerativeAIEmbeddings
+        api_key = os.getenv("GOOGLE_API_KEY")
+        if not api_key:
+            raise EnvironmentError("GOOGLE_API_KEY not set.")
+        return GoogleGenerativeAIEmbeddings(
+            google_api_key=api_key,
+            model=GEMINI_MODEL,
+            task_type="retrieval_query",
+        )
+    else:
+        from langchain_community.embeddings import FastEmbedEmbeddings
+        return FastEmbedEmbeddings(model_name=FASTEMBED_MODEL)
 
 
 def load_retriever(persist_dir: str = CHROMA_PERSIST_DIR) -> Chroma:

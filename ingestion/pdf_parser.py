@@ -2,6 +2,7 @@
 PDF Parser — extracts text from all corpus PDFs using PyMuPDF.
 Handles scanned PDFs gracefully (returns empty text, flags for OCR).
 """
+# pyrefly: ignore [missing-import]
 import fitz  # PyMuPDF
 import csv
 import os
@@ -26,10 +27,31 @@ class ParsedDocument:
 
 
 def load_manifest(manifest_path: str) -> list[dict]:
-    """Load corpus_manifest.csv into a list of dicts."""
+    """
+    Load corpus_manifest.csv into a list of dicts.
+    Returns an empty list if the file is a Git LFS pointer or lacks
+    the expected 'filename' column — the parser falls back to
+    folder-based metadata in that case.
+    """
+    if not os.path.exists(manifest_path):
+        return []
+
+    # Detect Git LFS pointer (starts with "version https://git-lfs")
+    with open(manifest_path, "r", encoding="utf-8") as f:
+        first_line = f.readline()
+    if first_line.startswith("version https://git-lfs"):
+        print("  [INFO] corpus_manifest.csv is a Git LFS pointer — "
+              "run `git lfs pull` to fetch it. Using folder-based metadata.")
+        return []
+
     records = []
     with open(manifest_path, newline="", encoding="utf-8") as f:
-        for row in csv.DictReader(f):
+        reader = csv.DictReader(f)
+        if "filename" not in (reader.fieldnames or []):
+            print(f"  [INFO] corpus_manifest.csv has no 'filename' column "
+                  f"(columns: {reader.fieldnames}). Using folder-based metadata.")
+            return []
+        for row in reader:
             records.append(row)
     return records
 
