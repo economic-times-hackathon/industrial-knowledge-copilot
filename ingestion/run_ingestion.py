@@ -42,9 +42,12 @@ def main():
             print(f"    {cat:30s}: {count:5d} chunks")
         return
 
-    # Validate OpenAI key
-    if not os.getenv("OPENAI_API_KEY"):
-        print("[ERROR] OPENAI_API_KEY not set. Copy .env.example to .env and add your key.")
+    # Validate required API keys
+    if not os.getenv("GOOGLE_API_KEY"):
+        print("[ERROR] GOOGLE_API_KEY not set. Get a free key at https://aistudio.google.com/apikey")
+        sys.exit(1)
+    if not os.getenv("GROQ_API_KEY"):
+        print("[ERROR] GROQ_API_KEY not set. Get a free key at https://console.groq.com")
         sys.exit(1)
 
     print("=" * 60)

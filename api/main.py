@@ -99,8 +99,10 @@ class StatsResponse(BaseModel):
 # ── Helper ────────────────────────────────────────────────────────────────────
 
 def _require_key():
-    if not os.getenv("OPENAI_API_KEY"):
-        raise HTTPException(status_code=503, detail="OPENAI_API_KEY not configured. Add it to .env.")
+    if not os.getenv("GROQ_API_KEY"):
+        raise HTTPException(status_code=503, detail="GROQ_API_KEY not configured. Add it to .env.")
+    if not os.getenv("GOOGLE_API_KEY"):
+        raise HTTPException(status_code=503, detail="GOOGLE_API_KEY not configured. Add it to .env.")
 
 def _to_rag_response(result: dict) -> RAGResponse:
     return RAGResponse(
@@ -117,7 +119,7 @@ def _to_rag_response(result: dict) -> RAGResponse:
 def health_check():
     return HealthResponse(
         status="ok",
-        openai_key_set=bool(os.getenv("OPENAI_API_KEY")),
+        openai_key_set=bool(os.getenv("GROQ_API_KEY") and os.getenv("GOOGLE_API_KEY")),
         chroma_dir=CHROMA_DIR,
         api_version=app.version,
     )

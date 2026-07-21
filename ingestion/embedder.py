@@ -1,9 +1,11 @@
 """
 Embedder — generates Google Gemini embeddings and stores in ChromaDB.
-Uses GoogleGenerativeAIEmbeddings (text-embedding-004, 768 dims, free tier).
+Uses GoogleGenerativeAIEmbeddings (gemini-embedding-001, 3072 dims, free tier).
+Rate-limits to 90 requests/min to stay under the 100 req/min free tier cap.
 No OpenAI dependency.
 """
 import os
+import time
 from pathlib import Path
 from tqdm import tqdm
 
@@ -17,8 +19,12 @@ from langchain_core.documents import Document as LCDocument
 from ingestion.chunker import DocumentChunk
 
 CHROMA_PERSIST_DIR = os.getenv("CHROMA_PERSIST_DIR", "./chroma_db")
-EMBEDDING_MODEL    = os.getenv("EMBEDDING_MODEL", "models/text-embedding-004")
+EMBEDDING_MODEL    = os.getenv("EMBEDDING_MODEL", "gemini-embedding-001")
 COLLECTION_NAME    = "industrial_knowledge"
+# Free tier: 100 requests/min. We use batch_size=50 and sleep 35s between
+# batches → ~100 chunks/min, safely under the quota.
+_BATCH_SIZE_DEFAULT = 50
+_SLEEP_BETWEEN_BATCHES = 35   # seconds
 
 
 def _get_embeddings():

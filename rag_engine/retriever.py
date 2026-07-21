@@ -14,7 +14,7 @@ from langchain_chroma import Chroma
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 
 CHROMA_PERSIST_DIR = os.getenv("CHROMA_PERSIST_DIR", "./chroma_db")
-EMBEDDING_MODEL    = os.getenv("EMBEDDING_MODEL", "models/text-embedding-004")
+EMBEDDING_MODEL    = os.getenv("EMBEDDING_MODEL", "gemini-embedding-001")
 COLLECTION_NAME    = "industrial_knowledge"
 TOP_K              = int(os.getenv("TOP_K_RETRIEVAL", "8"))
 
