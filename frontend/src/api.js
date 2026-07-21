@@ -21,6 +21,8 @@ export const api = {
     })
   },
 
+  listDocuments: () => client.get('/documents'),
+
   asset:       (tag, top_k = 12) => client.get(`/asset/${encodeURIComponent(tag)}`, { params: { top_k } }),
 
   rca: (equipment_tag, symptom, top_k = 10) =>

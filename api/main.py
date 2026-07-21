@@ -208,6 +208,38 @@ async def upload_document(
         message="Document queued for ingestion. It will appear in search results within ~30 seconds.",
     )
 
+@app.get("/documents", tags=["System"])
+def list_documents():
+    """List all ingested documents (from corpus and uploads)."""
+    res = []
+    
+    # 1. Base Corpus
+    if os.path.exists("corpus"):
+        for root, _, files in os.walk("corpus"):
+            for f in files:
+                if f.endswith(".pdf"):
+                    path = os.path.join(root, f)
+                    stat = os.stat(path)
+                    res.append({
+                        "name": f,
+                        "size": stat.st_size,
+                        "source": "corpus",
+                        "category": os.path.basename(root)
+                    })
+    
+    # 2. Uploads
+    if os.path.exists("uploads"):
+        for f in os.listdir("uploads"):
+            if f.endswith(".pdf"):
+                stat = os.stat(f"uploads/{f}")
+                res.append({
+                    "name": f,
+                    "size": stat.st_size,
+                    "source": "upload",
+                    "category": "uploaded"
+                })
+    return {"files": res}
+
 
 # ── Screen 2: AI Copilot ──────────────────────────────────────────────────────
 
