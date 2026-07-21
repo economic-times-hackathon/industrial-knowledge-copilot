@@ -18,11 +18,11 @@ const CATEGORIES = [
 ]
 
 const STARTERS = [
-  'What are the OISD requirements for emergency siren codes?',
-  'What caused the BP Texas City refinery explosion?',
-  'What is the recommended bearing oil change interval for process pumps?',
-  'What are PESO regulations for pressure vessel inspection in India?',
-  'How do you diagnose mechanical seal failure in centrifugal pumps?',
+  'What is process safety management?',
+  'How do you perform pump maintenance?',
+  'What are the safety requirements for confined spaces?',
+  'Tell me about pressure relief valve testing',
+  'What should I know about emergency procedures?',
 ]
 
 function Message({ msg }) {
@@ -105,8 +105,17 @@ export default function CopilotScreen() {
         sources, chunks: chunks_retrieved, id: Date.now() + 1,
       }])
     } catch (err) {
-      setError(err)
-      setMessages(prev => prev.slice(0, -1))
+      console.error('Query error:', err);
+      let errorMsg = 'Failed to get response';
+      
+      if (err.response?.status === 500) {
+        errorMsg = 'Database error - try uploading documents first or check if ChromaDB is properly initialized';
+      } else if (err.response?.data?.detail) {
+        errorMsg = err.response.data.detail;
+      }
+      
+      setError({ message: errorMsg });
+      setMessages(prev => prev.slice(0, -1));
     } finally {
       setLoading(false)
       inputRef.current?.focus()

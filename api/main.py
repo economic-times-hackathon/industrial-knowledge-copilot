@@ -26,7 +26,11 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from rag_engine.copilot import ask, rca_query, compliance_check, notify_scan
-from rag_engine.graph import get_neighbors
+try:
+    from rag_engine.graph import get_neighbors
+except ImportError:
+    # Neo4j not installed - use stub implementation
+    def get_neighbors(tag): return []
 from ingestion.embedder import get_collection_stats
 
 app = FastAPI(
@@ -74,7 +78,7 @@ class RAGResponse(BaseModel):
     chunks_retrieved: int
 
 class QueryRequest(BaseModel):
-    question: str = Field(..., min_length=5)
+    question: str = Field(..., min_length=1)
     category: Optional[str] = Field(None, description="Filter by category (optional)")
     top_k: int = Field(8, ge=1, le=20)
 
