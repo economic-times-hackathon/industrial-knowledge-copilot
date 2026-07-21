@@ -32,4 +32,6 @@ export const api = {
     client.post('/compliance', { topic, equipment_or_area, top_k }),
 
   notifications: (top_k = 10) => client.get('/notifications', { params: { top_k } }),
+
+  captureKnowledge: (captureData) => client.post('/capture/process', captureData),
 }

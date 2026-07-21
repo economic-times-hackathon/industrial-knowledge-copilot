@@ -41,54 +41,257 @@ Expert → Video Recording → Whisper Transcription → LLM Processing → Know
 ### Frontend Components
 ```javascript
 // KnowledgeCaptureScreen.jsx - new 7th screen
-- VideoRecorder component (WebRTC)
-- EquipmentSelector (link to existing assets)
-- SessionManager (start/stop/review)
-- TranscriptionViewer (real-time Whisper output)
+import React, { useState, useRef, useEffect } from 'react';
+
+const KnowledgeCaptureScreen = () => {
+    const [isRecording, setIsRecording] = useState(false);
+    const [transcript, setTranscript] = useState('');
+    const [isProcessing, setIsProcessing] = useState(false);
+    const recognitionRef = useRef(null);
+
+    useEffect(() => {
+        // Initialize Web Speech API
+        if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognitionRef.current = new SpeechRecognition();
+            
+            const recognition = recognitionRef.current;
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+
+            recognition.onresult = (event) => {
+                let finalTranscript = '';
+                let interimTranscript = '';
+                
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript + ' ';
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+                
+                setTranscript(prev => prev + finalTranscript);
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+            };
+        }
+    }, []);
+
+    const startRecording = () => {
+        setTranscript('');
+        setIsRecording(true);
+        recognitionRef.current?.start();
+    };
+
+    const stopRecording = async () => {
+        setIsRecording(false);
+        recognitionRef.current?.stop();
+        
+        if (transcript.trim()) {
+            setIsProcessing(true);
+            await processWithLLM(transcript);
+            setIsProcessing(false);
+        }
+    };
+
+    const processWithLLM = async (text) => {
+        try {
+            const response = await fetch('/api/capture/process', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    transcript: text,
+                    equipment_context: selectedEquipment,
+                    session_type: 'procedure_walkthrough'
+                })
+            });
+            
+            const result = await response.json();
+            // Handle processed knowledge...
+        } catch (error) {
+            console.error('LLM processing failed:', error);
+        }
+    };
+
+    return (
+        <div className="p-6 space-y-6">
+            <div className="text-center">
+                <h2 className="text-2xl font-bold mb-4">Knowledge Capture</h2>
+                <p className="text-gray-600 mb-6">
+                    Record equipment procedures and safety practices
+                </p>
+            </div>
+
+            {/* Recording Controls */}
+            <div className="flex justify-center space-x-4">
+                {!isRecording ? (
+                    <button 
+                        onClick={startRecording}
+                        className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg"
+                    >
+                        🎤 Start Recording
+                    </button>
+                ) : (
+                    <button 
+                        onClick={stopRecording}
+                        className="bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-lg"
+                    >
+                        ⏹️ Stop & Process
+                    </button>
+                )}
+            </div>
+
+            {/* Live Transcript */}
+            {isRecording && (
+                <div className="bg-gray-100 p-4 rounded-lg">
+                    <h3 className="font-semibold mb-2">Live Transcript:</h3>
+                    <p className="text-gray-800">{transcript || "Listening..."}</p>
+                </div>
+            )}
+
+            {/* Processing Status */}
+            {isProcessing && (
+                <div className="text-center">
+                    <div className="spinner"></div>
+                    <p>Processing with AI...</p>
+                </div>
+            )}
+        </div>
+    );
+};
 ```
 
 ### Backend Extensions
 ```python
-# New API endpoints
-POST /capture/start          # Initialize recording session
-POST /capture/upload         # Process video file
-GET  /capture/sessions       # List all captured sessions
-GET  /capture/{id}/transcript # Get processed knowledge
-POST /capture/{id}/approve    # Approve for training use
+# api/knowledge_capture.py - new FastAPI endpoint
+from fastapi import APIRouter, HTTPException
+from groq import Groq
+from pydantic import BaseModel
 
-# New processing pipeline
-- whisper_processor.py       # Audio → text transcription
-- knowledge_extractor.py     # LLM → structured knowledge
-- integration_handler.py     # Link to existing corpus
-```
+router = APIRouter()
+groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
-### Whisper Integration
-```python
-import whisper
-from groq import Groq  # For LLM processing
+class CaptureRequest(BaseModel):
+    transcript: str
+    equipment_context: str
+    session_type: str
 
-def process_video_capture(video_file, equipment_context):
-    # 1. Extract audio
-    audio = extract_audio(video_file)
+@router.post("/capture/process")
+async def process_capture(request: CaptureRequest):
+    """Process speech transcript into structured knowledge."""
     
-    # 2. Transcribe with Whisper
-    model = whisper.load_model("large-v3")
-    result = model.transcribe(audio, language="en")
+    try:
+        # Use your existing Groq LLM to structure the knowledge
+        response = groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": KNOWLEDGE_EXTRACTION_PROMPT},
+                {"role": "user", "content": f"""
+Equipment: {request.equipment_context}
+Session Type: {request.session_type}
+Expert Transcript: {request.transcript}
+
+Convert this expert explanation into structured procedure documentation.
+                """}
+            ]
+        )
+        
+        structured_knowledge = response.choices[0].message.content
+        
+        # Store in your existing vector database
+        await store_knowledge(structured_knowledge, request.equipment_context)
+        
+        return {
+            "status": "success",
+            "structured_knowledge": structured_knowledge,
+            "message": "Knowledge captured and stored successfully"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Processing failed: {str(e)}")
+
+async def store_knowledge(knowledge_text: str, equipment_context: str):
+    """Store processed knowledge in ChromaDB using existing pipeline."""
+    # Use your existing embedder to add to the knowledge base
+    from ingestion.embedder import get_vector_store
+    from langchain_core.documents import Document
     
-    # 3. Process with LLM (Groq)
-    structured_knowledge = groq_client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=[{
-            "role": "system",
-            "content": KNOWLEDGE_EXTRACTION_PROMPT
-        }, {
-            "role": "user", 
-            "content": f"Equipment: {equipment_context}\nTranscript: {result['text']}"
-        }]
+    doc = Document(
+        page_content=knowledge_text,
+        metadata={
+            "source": "expert_capture",
+            "equipment": equipment_context,
+            "category": "procedures",
+            "document_type": "expert_knowledge"
+        }
     )
     
-    return structured_knowledge
+    store = get_vector_store()
+    store.add_documents([doc])
 ```
+
+## Technical Implementation
+
+### Speech-to-Text Options (100% Free)
+
+#### **Option A: Browser Web Speech API** (Recommended)
+```javascript
+// Real-time speech recognition in the browser
+const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+recognition.continuous = true;
+recognition.interimResults = true;
+recognition.lang = 'en-US';
+
+recognition.onresult = (event) => {
+    let finalTranscript = '';
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+        if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript;
+        }
+    }
+    // Send to backend for LLM processing
+    sendToLLM(finalTranscript);
+};
+```
+
+### Speech-to-Text Comparison
+
+| Feature | Web Speech API | Local Whisper |
+|---|---|---|
+| **Cost** | 100% Free | 100% Free |
+| **Setup** | Zero setup | One-time model download |
+| **Accuracy** | Very good | Excellent |
+| **Latency** | Real-time | Near real-time |
+| **Offline** | Requires internet | Fully offline |
+| **Technical terms** | Good | Excellent |
+| **Browser support** | Native | Requires audio upload |
+| **Resource usage** | Minimal | CPU/GPU intensive |
+
+**Recommendation**: Start with **Web Speech API** for immediate deployment, add local Whisper later for offline scenarios or higher accuracy needs.
+
+#### **Option B: Local Whisper Model**
+```python
+# One-time model download (~1.5GB), then runs locally forever
+import whisper
+
+# Download once, use forever - no API costs
+model = whisper.load_model("medium")  # or "large" for better accuracy
+
+def transcribe_local(audio_file):
+    result = model.transcribe(audio_file, language="english")
+    return result["text"]
+```
+
+**Pros**:
+- ✅ Completely offline
+- ✅ No API key required
+- ✅ High accuracy (especially for technical terms)
+- ✅ One-time download, unlimited use
 
 ## Knowledge Extraction Prompts
 
@@ -195,19 +398,31 @@ Format as:
 
 ## Technical Requirements
 
-### Dependencies
+### Dependencies (All Free)
 ```txt
-# Add to requirements.txt
-openai-whisper>=20231117  # Latest Whisper model
-opencv-python>=4.8.0      # Video processing
-moviepy>=1.0.3           # Audio extraction
-streamlit-webrtc>=0.45.0  # Web video recording (if using Streamlit)
+# No additional backend dependencies needed!
+# Uses existing Groq LLM + ChromaDB + FastEmbed stack
+
+# Optional: If you want local Whisper as backup
+openai-whisper>=20231117  # Only if using local Whisper option
 ```
 
-### Hardware Recommendations
-- **GPU**: NVIDIA RTX 3060+ for real-time Whisper transcription
-- **Storage**: 500GB+ for video archive (or cloud storage)
-- **Network**: Stable connection for video upload/processing
+### Browser Compatibility (Web Speech API)
+- ✅ Chrome 25+ (excellent support)  
+- ✅ Edge 79+ (excellent support)
+- ✅ Safari 14.1+ (good support)
+- ✅ Firefox 100+ (basic support)
+
+### Hardware Requirements
+**For Web Speech API (Recommended)**:
+- Any device with microphone
+- Modern browser
+- Internet connection (for initial page load only)
+
+**For Local Whisper (Optional)**:
+- CPU: Any modern processor (GPU optional but faster)
+- RAM: 4GB+ available 
+- Storage: 1.5GB for model download
 
 ## Integration Points
 
