@@ -42,6 +42,17 @@ It ingests heterogeneous industrial documents — engineering drawings, OEM manu
 | 7–12 disconnected document systems per large plant | NASSCOM-EY Study |
 | 18–22% of unplanned downtime linked to knowledge fragmentation | BIS Research |
 | 25% of experienced industrial engineers retiring this decade | Industry estimate |
+| **80% of expert knowledge exists only in their heads** | MIT Research |
+
+---
+
+## Dual Solution Approach
+
+### 1. **Knowledge Preservation** (Expert → System)
+Video capture system records experienced engineers demonstrating equipment procedures, troubleshooting walkthroughs, and safety practices. Whisper converts speech to text, LLM structures the knowledge, and the system builds a growing repository of expert insights before they retire.
+
+### 2. **Knowledge Acceleration** (System → Users)  
+RAG-powered copilot provides instant, cited answers from the complete document corpus — regulatory standards, maintenance procedures, incident reports, OEM manuals — making decades of documentation instantly searchable.
 
 ---
 
@@ -111,7 +122,7 @@ Full provenance in [`corpus_manifest.csv`](./corpus_manifest.csv).
 | Backend API | FastAPI 0.111 + Uvicorn — 6 screen endpoints | Done |
 | Async Ingestion | FastAPI BackgroundTasks — upload → parse → embed | Done |
 | Frontend | React 18 + Tailwind 3 + Vite — 6-screen dashboard | Done |
-| Knowledge Graph | Neo4j — Asset Explorer graph traversal | Planned |
+| Knowledge Capture | Video + Whisper + LLM processing — prevent retiring expert knowledge loss | Planned |
 | Deployment | Docker Compose | Planned |
 
 ---
