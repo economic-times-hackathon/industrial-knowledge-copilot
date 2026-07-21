@@ -87,7 +87,8 @@ class UploadResponse(BaseModel):
 
 class HealthResponse(BaseModel):
     status: str
-    openai_key_set: bool
+    groq_key_set: bool
+    google_key_set: bool
     chroma_dir: str
     api_version: str
 
@@ -99,8 +100,13 @@ class StatsResponse(BaseModel):
 # ── Helper ────────────────────────────────────────────────────────────────────
 
 def _require_key():
-    if not os.getenv("OPENAI_API_KEY"):
-        raise HTTPException(status_code=503, detail="OPENAI_API_KEY not configured. Add it to .env.")
+    """Raise 503 if the Groq API key (used for LLM inference) is not set."""
+    if not os.getenv("GROQ_API_KEY"):
+        raise HTTPException(
+            status_code=503,
+            detail="GROQ_API_KEY not configured. Add it to .env. "
+                   "Get a free key at https://console.groq.com"
+        )
 
 def _to_rag_response(result: dict) -> RAGResponse:
     return RAGResponse(
@@ -117,7 +123,8 @@ def _to_rag_response(result: dict) -> RAGResponse:
 def health_check():
     return HealthResponse(
         status="ok",
-        openai_key_set=bool(os.getenv("OPENAI_API_KEY")),
+        groq_key_set=bool(os.getenv("GROQ_API_KEY")),
+        google_key_set=bool(os.getenv("GOOGLE_API_KEY")),
         chroma_dir=CHROMA_DIR,
         api_version=app.version,
     )
@@ -175,8 +182,8 @@ async def upload_document(
     Upload a PDF. It is stored temporarily, then ingested asynchronously —
     parsed, chunked, and embedded into the vector index. Mirrors the
     'Document upload — auto-process' screen behaviour.
+    Upload uses only the embedding pipeline (FastEmbed) — no LLM key needed.
     """
-    _require_key()
     if not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are supported.")
     if file.size and file.size > 50 * 1024 * 1024:
