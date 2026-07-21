@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Mic, Square, Upload, AlertCircle } from 'lucide-react';
+import { Mic, Square, Upload, AlertCircle, Camera, Image } from 'lucide-react';
 import { api } from '../api';
 import ErrorBanner from '../components/ErrorBanner';
 import Spinner from '../components/Spinner';
@@ -12,7 +12,9 @@ const KnowledgeCaptureScreen = () => {
   const [error, setError] = useState('');
   const [result, setResult] = useState(null);
   const [selectedEquipment, setSelectedEquipment] = useState('');
+  const [attachedPhotos, setAttachedPhotos] = useState([]);
   const recognitionRef = useRef(null);
+  const fileInputRef = useRef(null);
   const [speechSupported, setSpeechSupported] = useState(false);
 
   useEffect(() => {
@@ -90,16 +92,39 @@ const KnowledgeCaptureScreen = () => {
       const response = await api.captureKnowledge({
         transcript: transcript.trim(),
         equipment_context: selectedEquipment,
-        session_type: 'procedure_walkthrough'
+        session_type: 'procedure_walkthrough',
+        photos: attachedPhotos.map(p => p.data) // Include photo data
       });
       
       setResult(response);
       setTranscript(''); // Clear for next session
+      setAttachedPhotos([]); // Clear photos
     } catch (err) {
       setError(err.message || 'Failed to process knowledge');
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const handlePhotoUpload = (event) => {
+    const files = Array.from(event.target.files);
+    
+    files.forEach(file => {
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setAttachedPhotos(prev => [...prev, {
+            name: file.name,
+            data: e.target.result
+          }]);
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  };
+
+  const removePhoto = (index) => {
+    setAttachedPhotos(prev => prev.filter((_, i) => i !== index));
   };
 
   const equipmentOptions = [
@@ -188,6 +213,23 @@ const KnowledgeCaptureScreen = () => {
             <span>Process Knowledge</span>
           </button>
         )}
+
+        <button 
+          onClick={() => fileInputRef.current?.click()}
+          className="flex items-center space-x-2 bg-green-500 hover:bg-green-600 text-white px-4 py-3 rounded-lg font-medium"
+        >
+          <Camera size={20} />
+          <span>Add Photos</span>
+        </button>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={handlePhotoUpload}
+          className="hidden"
+        />
       </div>
 
       {/* Recording Status */}
@@ -210,6 +252,30 @@ const KnowledgeCaptureScreen = () => {
           <div className="text-gray-800 whitespace-pre-wrap">
             {transcript}
             <span className="text-gray-500 italic">{interimTranscript}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Attached Photos */}
+      {attachedPhotos.length > 0 && (
+        <div className="bg-gray-50 border rounded-lg p-4">
+          <h3 className="font-semibold mb-2 text-gray-800">Attached Photos ({attachedPhotos.length}):</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {attachedPhotos.map((photo, index) => (
+              <div key={index} className="relative">
+                <img 
+                  src={photo.data} 
+                  alt={photo.name}
+                  className="w-full h-24 object-cover rounded border"
+                />
+                <button 
+                  onClick={() => removePhoto(index)}
+                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 text-xs hover:bg-red-600"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
           </div>
         </div>
       )}
