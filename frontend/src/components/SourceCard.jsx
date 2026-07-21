@@ -39,27 +39,46 @@ export default function SourceCard({ source, compact = false }) {
     )
   }
 
+  // Google-style source card
   return (
     <>
       <div 
         onClick={() => setShowViewer(true)}
-        className={`rounded-lg border p-3 text-xs space-y-1 hover:brightness-110 cursor-pointer transition-all ${cls}`}
+        className="bg-surface-800 border border-surface-600 rounded-lg p-3 hover:border-accent-blue/50 hover:bg-surface-700 cursor-pointer transition-all group max-w-full"
       >
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <span className="font-mono font-semibold">[{source.index}]</span>
-          <span className="font-medium truncate max-w-[200px]" title={source.filename}>
-            {source.filename.replace('.pdf', '')}
+        {/* Header with category badge and relevance */}
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <span className={`px-2 py-0.5 rounded text-[10px] font-medium shrink-0 ${cls}`}>
+              {label}
+            </span>
+            <span className="font-mono text-xs text-gray-400 shrink-0">
+              [{source.index}]
+            </span>
+          </div>
+          <div className="flex items-center gap-1 shrink-0">
+            <span className="text-xs text-accent-blue font-medium">
+              {(source.relevance_score * 100).toFixed(0)}%
+            </span>
+          </div>
+        </div>
+
+        {/* Title */}
+        <div className="text-sm font-medium text-gray-200 mb-1 line-clamp-1 group-hover:text-accent-blue transition-colors">
+          {source.filename.replace('.pdf', '').replace(/_/g, ' ')}
+        </div>
+
+        {/* Description/excerpt */}
+        <div className="text-xs text-gray-400 line-clamp-2 mb-2">
+          {source.excerpt || source.description}
+        </div>
+
+        {/* Click hint */}
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] text-gray-600 group-hover:text-gray-400 transition-colors">
+            Click to view • {source.document_type}
           </span>
         </div>
-        <span className="shrink-0 font-mono text-[10px] opacity-70">
-          {(source.relevance_score * 100).toFixed(0)}%
-        </span>
-      </div>
-      <div className="opacity-80 line-clamp-2">{source.description}</div>
-      {source.source_url && source.source_url !== 'user-upload' && (
-        <span className="opacity-60 block mt-2 text-[10px]">Click to view document</span>
-      )}
       </div>
       {showViewer && <PdfViewerModal source={source} onClose={() => setShowViewer(false)} />}
     </>

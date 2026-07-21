@@ -36,18 +36,23 @@ _COPILOT_PROMPT = """You are an Expert Industrial Knowledge Copilot for a petrol
 You have access to a curated knowledge base: P&IDs, OEM manuals, Indian regulatory standards (OISD, PESO, DGMS,
 Factories Act), incident investigation reports (CSB, OSHA, ILO), and maintenance inspection records.
 
-Answer the user's question using ONLY the provided context chunks.
-If the context does not contain enough information, say so clearly.
+For technical questions: Use the provided context chunks to give detailed, cited answers.
+For general questions (greetings, general conversation): Respond helpfully as an industrial expert.
+If no relevant context is found, provide general industrial knowledge while noting the limitation.
 
-Response format:
+Response format for technical questions:
 1. Direct answer (2-5 sentences)
 2. Supporting details with inline citations [1], [2], etc.
 3. Sources: [1] filename — description
 4. Confidence: HIGH / MEDIUM / LOW
 
+Response format for general questions:
+Provide helpful, brief response as an industrial knowledge expert.
+
 Rules:
 - Never fabricate facts, specs, or regulatory requirements
-- Always cite the originating document
+- Always cite documents when using specific information
+- For greetings/general chat, be friendly but concise
 - Flag discrepancies when sources conflict
 - For safety-critical items (PSVs, LOTO, hazardous materials) always reference the relevant standard
 """
@@ -174,11 +179,36 @@ def _run(system_prompt: str, user_message: str, chunks) -> dict:
 
 def ask(question, category_filter=None, top_k=TOP_K, persist_dir="./chroma_db", verbose=False):
     """AI Copilot — open Q&A with cited answers."""
+    
+    # Check for simple greetings/general questions
+    simple_questions = ['hi', 'hello', 'hey', 'thanks', 'thank you', 'bye', 'goodbye']
+    if question.lower().strip() in simple_questions:
+        return {
+            "answer": f"Hello! I'm your Industrial Knowledge Copilot. I can help you with questions about safety procedures, equipment maintenance, regulatory compliance, and process operations. What would you like to know?",
+            "sources": [], 
+            "chunks": [], 
+            "confidence": "HIGH"
+        }
+    
     chunks = retrieve(question, top_k=top_k, category_filter=category_filter, persist_dir=persist_dir)
+    
     if not chunks:
-        return {"answer": "No relevant documents found.", "sources": [], "chunks": [], "confidence": "LOW"}
+        # For general industrial questions without specific context
+        general_response = _run(_COPILOT_PROMPT, 
+                              f"No specific documents found for this question: '{question}'. "
+                              f"Provide helpful general industrial knowledge if appropriate, "
+                              f"or suggest what kind of documents might contain this information.",
+                              [])
+        return {
+            "answer": general_response["answer"], 
+            "sources": [], 
+            "chunks": [], 
+            "confidence": "LOW"
+        }
+    
     if verbose:
         for c in chunks: print(f"  [{c.score:.3f}] {c.filename}")
+        
     return _run(_COPILOT_PROMPT,
                 f"CONTEXT:\n{format_context(chunks)}\n\nQUESTION: {question}\n\nAnswer with citations [1],[2],etc.",
                 chunks)

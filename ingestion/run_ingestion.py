@@ -31,22 +31,46 @@ from ingestion.embedder import embed_chunks, get_collection_stats
 EMBEDDING_BACKEND = os.getenv("EMBEDDING_BACKEND", "fastembed").lower()
 
 
-def _pick_subset(docs: list[ParsedDocument], max_per_category: int) -> list[ParsedDocument]:
+def _pick_subset(docs: list[ParsedDocument], max_per_category: int = None, max_total: int = None) -> list[ParsedDocument]:
     """
-    Pick up to `max_per_category` docs from each category.
-    Prefers non-scanned (text-extractable) docs; deterministic sort for reproducibility.
+    Pick documents either by:
+    - max_per_category: up to N docs from each category
+    - max_total: exactly N docs total (distributed across categories)
+    Prefers non-scanned, shorter docs (faster indexing); deterministic sort for reproducibility.
     """
     by_cat: dict[str, list[ParsedDocument]] = defaultdict(list)
     for d in docs:
-        if not d.is_scanned:
+        if not d.is_scanned and d.page_count <= 50:  # Prefer smaller docs for faster processing
             by_cat[d.category].append(d)
 
+    # Sort each category by: 1) reasonable length, 2) rich text content
+    for cat in by_cat:
+        by_cat[cat] = sorted(by_cat[cat], key=lambda d: (d.page_count < 20, len(d.text)), reverse=True)
+
     subset = []
-    for cat, cat_docs in sorted(by_cat.items()):
-        # Sort by text length descending (richest docs first), then take top N
-        picked = sorted(cat_docs, key=lambda d: len(d.text), reverse=True)[:max_per_category]
-        subset.extend(picked)
-        print(f"    {cat:30s}: {len(picked)} docs selected")
+    
+    if max_total:
+        # Distribute max_total documents across all categories
+        categories = sorted(by_cat.keys())
+        docs_per_cat = max_total // len(categories)
+        remaining = max_total % len(categories)
+        
+        for i, cat in enumerate(categories):
+            # Give extra docs to first few categories if there's remainder
+            take = docs_per_cat + (1 if i < remaining else 0)
+            picked = by_cat[cat][:take]
+            subset.extend(picked)
+            print(f"    {cat:30s}: {len(picked)} docs selected")
+            
+            if len(subset) >= max_total:
+                break
+                
+    elif max_per_category:
+        # Original logic - N docs per category
+        for cat, cat_docs in sorted(by_cat.items()):
+            picked = cat_docs[:max_per_category]
+            subset.extend(picked)
+            print(f"    {cat:30s}: {len(picked)} docs selected")
 
     return subset
 
@@ -59,15 +83,19 @@ def main():
     parser.add_argument("--chunk-size",       type=int, default=800,           help="Chunk size in characters")
     parser.add_argument("--chunk-overlap",    type=int, default=150,           help="Chunk overlap in characters")
     parser.add_argument("--batch-size",       type=int, default=32,            help="Embedding batch size (keep low to avoid OOM)")
-    parser.add_argument("--max-per-category", type=int, default=2,
-                        help="Max docs per category (default: 2 for prototype). "
-                             "Use --full to index everything.")
-    parser.add_argument("--full",             action="store_true",             help="Index the full corpus (overrides --max-per-category)")
+    parser.add_argument("--max-per-category", type=int, default=0,
+                        help="Max docs per category (use with --per-category mode)")
+    parser.add_argument("--max-total",        type=int, default=2,
+                        help="Max total documents to index (default: 2 for fast testing)")
+    parser.add_argument("--per-category",     action="store_true",
+                        help="Use max-per-category mode instead of max-total")
+    parser.add_argument("--full",             action="store_true",             help="Index the full corpus (overrides other limits)")
     parser.add_argument("--stats-only",       action="store_true",             help="Print collection stats and exit")
     parser.add_argument("--quiet",            action="store_true",             help="Suppress verbose output")
     args = parser.parse_args()
 
     if args.full:
+        args.max_total = 0
         args.max_per_category = 0
 
     verbose = not args.quiet
@@ -103,9 +131,18 @@ def main():
     print(f"\n  Parsed:  {len(docs)} documents  ({scanned} scanned/empty, skipped)")
 
     # ── Subset selection ─────────────────────────────────────────────────────
-    if args.max_per_category > 0:
-        print(f"\n  Prototype mode: selecting {args.max_per_category} best docs per category...")
-        docs = _pick_subset(docs, args.max_per_category)
+    if args.max_total > 0:
+        print(f"\n  Fast mode: selecting {args.max_total} best docs total...")
+        docs = _pick_subset(docs, max_total=args.max_total)
+        print(f"  → {len(docs)} docs selected for indexing")
+    elif args.per_category and args.max_per_category > 0:
+        print(f"\n  Per-category mode: selecting {args.max_per_category} docs per category...")
+        docs = _pick_subset(docs, max_per_category=args.max_per_category)
+        print(f"  → {len(docs)} docs selected for indexing")
+    elif not args.full:
+        # Default fallback - use max_total
+        print(f"\n  Default mode: selecting {2} best docs total...")
+        docs = _pick_subset(docs, max_total=2)
         print(f"  → {len(docs)} docs selected for indexing")
     else:
         docs = [d for d in docs if not d.is_scanned]
