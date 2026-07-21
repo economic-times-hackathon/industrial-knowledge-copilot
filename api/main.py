@@ -19,6 +19,7 @@ from typing import Optional
 
 from fastapi import FastAPI, HTTPException, UploadFile, File, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from dotenv import load_dotenv
@@ -44,8 +45,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+os.makedirs("corpus", exist_ok=True)
+os.makedirs("uploads", exist_ok=True)
+app.mount("/corpus", StaticFiles(directory="corpus"), name="corpus")
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
 CHROMA_DIR = os.getenv("CHROMA_PERSIST_DIR", "./chroma_db")
-CATEGORIES = ["pids", "oem_manuals", "regulatory", "incident_reports", "maintenance_data"]
+CATEGORIES = ["pids", "oem_manuals", "regulatory", "incident_reports", "maintenance_data", "uploaded"]
 
 
 # ── Request / Response models ─────────────────────────────────────────────────
@@ -58,6 +64,7 @@ class SourceRef(BaseModel):
     document_type: str
     description: str
     relevance_score: float
+    excerpt: str
 
 class RAGResponse(BaseModel):
     answer: str
@@ -171,7 +178,6 @@ def _ingest_uploaded_file(tmp_path: str, original_name: str):
     )
     chunks = chunk_documents([doc], verbose=False)
     embed_chunks(chunks, persist_dir=CHROMA_DIR, verbose=False)
-    Path(tmp_path).unlink(missing_ok=True)
 
 @app.post("/upload", response_model=UploadResponse, tags=["Document Upload"])
 async def upload_document(
@@ -190,11 +196,11 @@ async def upload_document(
         raise HTTPException(status_code=413, detail="File too large (max 50 MB).")
 
     content = await file.read()
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-        tmp.write(content)
-        tmp_path = tmp.name
+    file_path = f"uploads/{file.filename}"
+    with open(file_path, "wb") as f:
+        f.write(content)
 
-    background_tasks.add_task(_ingest_uploaded_file, tmp_path, file.filename)
+    background_tasks.add_task(_ingest_uploaded_file, file_path, file.filename)
 
     return UploadResponse(
         filename=file.filename,

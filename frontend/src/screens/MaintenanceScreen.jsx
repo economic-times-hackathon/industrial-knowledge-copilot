@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Wrench, AlertTriangle, ChevronDown, ChevronUp, History } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { api } from '../api'
-import ConfidenceBadge from '../components/ConfidenceBadge'
+
 import SourceCard from '../components/SourceCard'
 import Spinner from '../components/Spinner'
 import ErrorBanner from '../components/ErrorBanner'
@@ -178,7 +178,7 @@ export default function MaintenanceScreen() {
             <AlertTriangle size={15} className="text-yellow-400 shrink-0" />
             <span className="text-sm font-mono font-bold text-yellow-300">{tag}</span>
             <span className="text-xs text-gray-500 flex-1 truncate">{symptom.slice(0, 60)}…</span>
-            <ConfidenceBadge level={result.confidence} />
+
             <span className="text-xs text-gray-600 font-mono">{result.chunks_retrieved} chunks</span>
           </div>
 

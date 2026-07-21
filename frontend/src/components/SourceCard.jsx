@@ -1,3 +1,6 @@
+import { useState } from 'react'
+import PdfViewerModal from './PdfViewerModal'
+
 const CAT_COLOR = {
   pids:              'bg-blue-900/50 text-blue-300 border-blue-800',
   oem_manuals:       'bg-purple-900/50 text-purple-300 border-purple-800',
@@ -17,19 +20,31 @@ const CAT_LABEL = {
 }
 
 export default function SourceCard({ source, compact = false }) {
+  const [showViewer, setShowViewer] = useState(false)
+
   const cls = CAT_COLOR[source.category] ?? CAT_COLOR.uploaded
   const label = CAT_LABEL[source.category] ?? source.category
 
   if (compact) {
     return (
-      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border text-xs ${cls}`}>
-        [{source.index}] {source.filename.replace('.pdf', '')}
-      </span>
+      <>
+        <button 
+          onClick={() => setShowViewer(true)}
+          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border text-xs hover:opacity-80 transition-opacity cursor-pointer ${cls}`}
+        >
+          [{source.index}] {source.filename.replace('.pdf', '')}
+        </button>
+        {showViewer && <PdfViewerModal source={source} onClose={() => setShowViewer(false)} />}
+      </>
     )
   }
 
   return (
-    <div className={`rounded-lg border p-3 text-xs space-y-1 ${cls}`}>
+    <>
+      <div 
+        onClick={() => setShowViewer(true)}
+        className={`rounded-lg border p-3 text-xs space-y-1 hover:brightness-110 cursor-pointer transition-all ${cls}`}
+      >
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2">
           <span className="font-mono font-semibold">[{source.index}]</span>
@@ -43,15 +58,10 @@ export default function SourceCard({ source, compact = false }) {
       </div>
       <div className="opacity-80 line-clamp-2">{source.description}</div>
       {source.source_url && source.source_url !== 'user-upload' && (
-        <a
-          href={source.source_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="underline opacity-60 hover:opacity-100 truncate block"
-        >
-          {source.source_url.replace('https://', '').substring(0, 50)}…
-        </a>
+        <span className="opacity-60 block mt-2 text-[10px]">Click to view document</span>
       )}
-    </div>
+      </div>
+      {showViewer && <PdfViewerModal source={source} onClose={() => setShowViewer(false)} />}
+    </>
   )
 }

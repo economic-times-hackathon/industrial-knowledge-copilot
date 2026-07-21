@@ -1,5 +1,5 @@
 import ReactMarkdown from 'react-markdown'
-import ConfidenceBadge from './ConfidenceBadge'
+
 import SourceCard from './SourceCard'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { useState } from 'react'
@@ -14,7 +14,7 @@ export default function AnswerPanel({ result, title = 'Answer' }) {
       <div className="flex items-center justify-between px-4 py-3 border-b border-surface-600 bg-surface-700/50">
         <span className="text-sm font-medium text-gray-200">{title}</span>
         <div className="flex items-center gap-2">
-          <ConfidenceBadge level={result.confidence} />
+
           <span className="text-xs text-gray-500 font-mono">{result.chunks_retrieved} chunks</span>
         </div>
       </div>

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Send, Bot, User, Filter, RotateCcw } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { api } from '../api'
-import ConfidenceBadge from '../components/ConfidenceBadge'
+
 import SourceCard from '../components/SourceCard'
 import Spinner from '../components/Spinner'
 import ErrorBanner from '../components/ErrorBanner'
@@ -14,6 +14,7 @@ const CATEGORIES = [
   { value: 'regulatory',       label: 'Regulatory' },
   { value: 'incident_reports', label: 'Incidents' },
   { value: 'maintenance_data', label: 'Maintenance' },
+  { value: 'uploaded',         label: 'Uploaded Docs' },
 ]
 
 const STARTERS = [
@@ -48,9 +49,8 @@ function Message({ msg }) {
         </div>
 
         {/* Metadata row for assistant messages */}
-        {!isUser && msg.confidence && (
+        {!isUser && msg.chunks && (
           <div className="flex items-center gap-2 flex-wrap">
-            <ConfidenceBadge level={msg.confidence} />
             <span className="text-[10px] text-gray-600 font-mono">{msg.chunks} chunks used</span>
           </div>
         )}
