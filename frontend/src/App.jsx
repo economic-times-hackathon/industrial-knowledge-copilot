@@ -8,6 +8,8 @@ import MaintenanceScreen from './screens/MaintenanceScreen'
 import ComplianceScreen from './screens/ComplianceScreen'
 import NotifyScreen from './screens/NotifyScreen'
 
+import KnowledgeCaptureScreen from './screens/KnowledgeCaptureScreen'
+
 const SCREENS = {
   upload:      { title: 'Document Upload',   component: UploadScreen },
   copilot:     { title: 'AI Copilot',        component: CopilotScreen },
@@ -15,6 +17,7 @@ const SCREENS = {
   maintenance: { title: 'Maintenance Intel', component: MaintenanceScreen },
   compliance:  { title: 'Compliance Intel',  component: ComplianceScreen },
   notify:      { title: 'Notifications',     component: NotifyScreen },
+  capture:     { title: 'Knowledge Capture', component: KnowledgeCaptureScreen },
 }
 
 // Width in px matching the Tailwind classes used in Sidebar

@@ -1,6 +1,6 @@
 import {
   UploadCloud, MessageSquare, Map, Wrench,
-  ShieldCheck, Bell, Activity, ChevronLeft, ChevronRight
+  ShieldCheck, Bell, Activity, ChevronLeft, ChevronRight, Mic
 } from 'lucide-react'
 
 const NAV = [
@@ -10,6 +10,7 @@ const NAV = [
   { id: 'maintenance', icon: Wrench,        label: 'Maintenance Intel', sub: 'Predictive + RCA' },
   { id: 'compliance',  icon: ShieldCheck,   label: 'Compliance Intel',  sub: 'Gap checks + audits' },
   { id: 'notify',      icon: Bell,          label: 'Notifications',     sub: 'Proactive alert feed' },
+  { id: 'capture',     icon: Mic,           label: 'Knowledge Capture', sub: 'Record expert knowledge' },
 ]
 
 export default function Sidebar({ active, onNavigate, notifyCount = 0, collapsed, onToggle }) {

@@ -469,6 +469,90 @@ Convert this expert knowledge into structured documentation."""
         raise HTTPException(status_code=500, detail=f"Knowledge processing failed: {str(e)}")
 
 
+# ── Screen 7: Knowledge Capture ──────────────────────────────────────────────
+
+class CaptureRequest(BaseModel):
+    transcript: str = Field(..., description="Speech transcript from expert")
+    equipment_context: str = Field(..., description="Equipment tag or context")
+    session_type: str = Field("procedure_walkthrough", description="Type of knowledge session")
+    photos: Optional[list[str]] = Field(None, description="Base64 encoded photos (optional)")
+
+@app.post("/capture/process", tags=["Knowledge Capture"])
+def process_knowledge_capture(req: CaptureRequest):
+    """
+    Process captured expert knowledge (speech + photos) into structured, searchable format.
+    Converts informal expert explanations into documented procedures and adds to knowledge base.
+    """
+    _require_key()
+    
+    try:
+        # Create LLM instance
+        from langchain_groq import ChatGroq
+        api_key = os.getenv("GROQ_API_KEY")
+        if not api_key:
+            raise HTTPException(status_code=503, detail="GROQ_API_KEY not configured")
+        
+        llm = ChatGroq(api_key=api_key, model="llama-3.3-70b-versatile", temperature=0)
+        
+        system_prompt = """You are an Industrial Knowledge Extraction AI. Convert expert explanations into structured, searchable procedures.
+
+Extract and format:
+1. **Equipment**: Equipment tag/context
+2. **Procedure Type**: What kind of knowledge this represents
+3. **Safety Requirements**: Critical safety steps (LOTO, PPE, hazards)
+4. **Step-by-step Instructions**: Numbered procedure steps
+5. **Expert Tips**: Tacit knowledge, warnings, "feel" indicators
+6. **Troubleshooting**: Diagnostic steps if mentioned
+
+Format as clear, searchable text that preserves the expert's knowledge."""
+
+        user_message = f"""Equipment Context: {req.equipment_context}
+Session Type: {req.session_type}
+Expert Transcript: {req.transcript}
+
+Convert this expert knowledge into structured documentation."""
+
+        response = llm.invoke([
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=user_message),
+        ])
+        
+        structured_knowledge = response.content
+        
+        # Store in ChromaDB as expert knowledge
+        from ingestion.embedder import get_vector_store
+        from langchain_core.documents import Document
+        import uuid
+        
+        doc = Document(
+            page_content=structured_knowledge,
+            metadata={
+                "filename": f"Expert_Knowledge_{req.equipment_context}_{uuid.uuid4().hex[:8]}.txt",
+                "category": "expert_knowledge",
+                "source_url": "expert-capture",
+                "document_type": "EXPERT_KNOWLEDGE",
+                "description": f"Expert knowledge: {req.equipment_context} - {req.session_type}",
+                "equipment_context": req.equipment_context,
+                "session_type": req.session_type,
+                "chunk_id": f"expert_{uuid.uuid4().hex[:8]}"
+            }
+        )
+        
+        # Add to vector store
+        store = get_vector_store(persist_dir=CHROMA_DIR)
+        store.add_documents([doc])
+        
+        return {
+            "status": "success",
+            "structured_knowledge": structured_knowledge,
+            "message": "Expert knowledge captured and indexed successfully",
+            "equipment_context": req.equipment_context
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Knowledge processing failed: {str(e)}")
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("api.main:app", host="0.0.0.0", port=8000, reload=True)
