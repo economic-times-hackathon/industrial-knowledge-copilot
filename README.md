@@ -644,10 +644,10 @@ The Knowledge Capture screen uses the Web Speech API — a browser-native featur
 
 | Browser | Support |
 |---|---|
-| Chrome 25+ | ✅ Excellent |
-| Edge 79+ | ✅ Excellent |
-| Safari 14.1+ | ✅ Good |
-| Firefox 100+ | ⚠️ Basic |
+| Chrome 25+ | Excellent |
+| Edge 79+ | Excellent |
+| Safari 14.1+ | Good |
+| Firefox 100+ | Basic |
 
 ### Photo Documentation
 
