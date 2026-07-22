@@ -19,7 +19,6 @@
 ![Theme](https://img.shields.io/badge/Theme-Industrial_Intelligence-blue?style=flat-square)
 ![Corpus](https://img.shields.io/badge/Corpus-102_Documents-green?style=flat-square)
 ![Chunks](https://img.shields.io/badge/Indexed_Chunks-13%2C779-purple?style=flat-square)
-![License](https://img.shields.io/badge/License-MIT-brightgreen?style=flat-square)
 
 </div>
 
@@ -39,6 +38,16 @@ Two crises are colliding in the industrial sector right now.
 It is an AI-powered, seven-screen operations platform that simultaneously **preserves expert knowledge** through live speech capture and **accelerates knowledge access** through intelligent RAG-powered retrieval across a 102-document corpus of regulatory standards, incident reports, OEM manuals, and maintenance records.
 
 One pipeline. Two directions. A plant that learns and never forgets.
+
+---
+
+## Demo Video
+
+<div align="center">
+
+https://github.com/user-attachments/assets/0de9af3b-83a1-4df1-af0f-ec57b151975c
+
+</div>
 
 ---
 
@@ -768,9 +777,13 @@ The current system is fully functional and production-ready for its scope. Natur
 
 ---
 
-## License
+## Team
 
-MIT License. See [LICENSE](./LICENSE) for details.
+| Name | GitHub Profile |
+|---|---|
+| **Anuj A** | [a-anuj](https://github.com/a-anuj) |
+| **Harish J** | [harish1604](https://github.com/harish1604) |
+| **Hari Prasath K** | [hariPrasathK-Dev](https://github.com/hariPrasathK-Dev) |
 
 ---
 
@@ -778,7 +791,7 @@ MIT License. See [LICENSE](./LICENSE) for details.
 
 **Built for the Economic Times Hackathon 2026**
 
-*Theme: Industrial Intelligence · Document Management · Knowledge Engineering*
+*Theme: AI for Industrial Knowledge Intelligence: Unified Asset & Operations Brain*
 
 ---
 
