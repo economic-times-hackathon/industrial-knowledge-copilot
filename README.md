@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🏭 Industrial Knowledge Intelligence
+# Industrial Knowledge Intelligence
 
 ### The Unified Operations Brain for Petroleum Refineries & Petrochemical Plants
 
@@ -55,35 +55,13 @@ One pipeline. Two directions. A plant that learns and never forgets.
 
 ---
 
-## Solution Architecture
+## Architecture
 
-The platform runs a single, end-to-end intelligence pipeline with two distinct modes:
-
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│  KNOWLEDGE CREATION                                                     │
-│                                                                         │
-│  PDF Corpus (102 docs)  ──►  PyMuPDF Parser  ──►  Chunker (800 chars)  │
-│                                                          │              │
-│  Expert Speech  ──►  Web Speech API  ──►  Groq LLM      │              │
-│                                               │          ▼              │
-│                                               └──►  FastEmbed (ONNX)   │
-│                                                          │              │
-│                                                          ▼              │
-│                                                    ChromaDB Index       │
-└─────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│  KNOWLEDGE RETRIEVAL                                                    │
-│                                                                         │
-│  User Question  ──►  retrieve()  ──►  format_context()  ──►  Groq LLM  │
-│                          │                                      │       │
-│                     Neo4j Graph                           Cited Answer  │
-│                   (equipment neighbors)                  + Confidence   │
-└─────────────────────────────────────────────────────────────────────────┘
-```
-
+<div align="center">
+  <img src="architecture_diagram.png" alt="Industrial Knowledge Intelligence Architecture" width="800"/>
+  <br/>
+  <em>Complete system architecture</em>
+</div>
 
 ---
 
